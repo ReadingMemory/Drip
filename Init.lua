@@ -112,20 +112,6 @@ getgenv().cache = {
     end
 }
 
-getgenv().getinstances = function()
-	local Table = {}
-	for i, v in next, getreg() do
-		if type(v) == "table" then
-			for n, c in next, v do
-				if typeof(c) == "Instance" then
-					table.insert(Table, c)
-				end
-			end
-		end
-	end
-	return Table
-end
-
 getgenv().getrunningscripts = newcclosure(function()
 	local scripts = {}
 	for _, script in ipairs(game:GetService("Players").LocalPlayer:GetDescendants()) do
@@ -139,19 +125,6 @@ end)
 
 getgenv().getscripthash = newcclosure(function(script)
 	return script:GetHash()
-end)
-
-getgenv().getnilinstances = newcclosure(function()
-	local inst = getinstances()
-	local r = {}
-
-	for i, v in pairs(inst) do
-		if typeof(v) == "Instance" and v.Parent == nil then 
-			r[#r + 1] = v 
-		end
-	end
-
-	return r
 end)
 
 getgenv().getscripts = newcclosure(function()
