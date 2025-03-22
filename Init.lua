@@ -2391,41 +2391,32 @@ function PresetScripts:GetScript(Name: string)
 	local Content = "Script not found ):"
 	if Name == "Dex" then
 		
-		Content = [==[loadstring(game:HttpGet("https://raw.githubusercontent.com/infyiff/backup/main/dex.lua"))()]==]
+		--Content = [==[loadstring(game:HttpGet("https://raw.githubusercontent.com/infyiff/backup/main/dex.lua"))()]==]
 	elseif Name == "IY" then
-		Content = [==[loadstring(game:HttpGet("https://raw.githubusercontent.com/EdgeIY/infiniteyield/master/source"))()]==]
+		--Content = [==[loadstring(game:HttpGet("https://raw.githubusercontent.com/EdgeIY/infiniteyield/master/source"))()]==]
 		
 	elseif Name == 'UNESP' then
 		Content = [==[loadstring(game:HttpGet('https://raw.githubusercontent.com/ic3w0lf22/Unnamed-ESP/master/UnnamedESP.lua',true))()]==]
 		
 	elseif Name == "RemoteSpy" then
-		Content = [==[loadstring(game:HttpGet("https://github.com/exxtremestuffs/SimpleSpySource/raw/master/SimpleSpy.lua"))()]==]
+		--Content = [==[loadstring(game:HttpGet("https://github.com/exxtremestuffs/SimpleSpySource/raw/master/SimpleSpy.lua"))()]==]
 		
 	elseif Name == 'OwlHub' then
-		Content = [==[loadstring(game:HttpGet("https://raw.githubusercontent.com/CriShoux/OwlHub/master/OwlHub.txt"))();]==]
+		--Content = [==[loadstring(game:HttpGet("https://raw.githubusercontent.com/CriShoux/OwlHub/master/OwlHub.txt"))();]==]
 		
 	elseif Name == 'DarkHub' then
-		Content = [==[loadstring(game:HttpGet("https://raw.githubusercontent.com/RandomAdamYT/DarkHub/master/Init", true))()]==]
+		--Content = [==[loadstring(game:HttpGet("https://raw.githubusercontent.com/RandomAdamYT/DarkHub/master/Init", true))()]==]
 
 	elseif Name == "hidentity" then
-		Content = [[loadstring(game:HttpGet("https://raw.githubusercontent.com/vvult/HIdentity/main/HIdentity"))()]]
+		--Content = [[loadstring(game:HttpGet("https://raw.githubusercontent.com/vvult/HIdentity/main/HIdentity"))()]]
 		
 	elseif Name == "Hydroxide" then
-		Content = [==[local owner = "Upbolt"
-local branch = "revision"
-
-local function webImport(file)
-    return loadstring(game:HttpGetAsync(("https://raw.githubusercontent.com/%s/Hydroxide/%s/%s.lua"):format(owner, branch, file)), file .. '.lua')()
-end
-
-webImport("init")
-webImport("ui/main")]==]
 		
 	elseif Name == "sUNC" then
-		Content = [==[loadstring(game:HttpGet("https://raw.githubusercontent.com/HummingBird8/HummingRn/main/sUNCTestGET"))()]==]
+		--Content = [==[loadstring(game:HttpGet("https://raw.githubusercontent.com/HummingBird8/HummingRn/main/sUNCTestGET"))()]==]
 		
 	elseif Name == "AdonisCries" then
-		Content = [==[loadstring(game:HttpGet("https://raw.githubusercontent.com/Pixeluted/adoniscries/main/Source.lua"))()]==]
+		--Content = [==[loadstring(game:HttpGet("https://raw.githubusercontent.com/Pixeluted/adoniscries/main/Source.lua"))()]==]
 	end
 	return Content
 end
