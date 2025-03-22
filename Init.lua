@@ -1,11 +1,11 @@
-getgenv().hookmetamethod = function(self, method, func)
+--[[getgenv().hookmetamethod = function(self, method, func)
     local mt = getrawmetatable(self)
     local old = mt[method]
     setreadonly(mt, false)
     mt[method] = func
     setreadonly(mt, true)
     return old
-end
+end]]
 
 function debug.getinfo(f, options)
 	if type(options) == "string" then
