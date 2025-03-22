@@ -1,52 +1,11 @@
-local security = {
-	'OpenVideosFolder', 'OpenScreenshotsFolder', 'GetRobuxBalance', 'PerformPurchase',
-	'PromptBundlePurchase', 'PromptNativePurchase', 'PromptProductPurchase', 'PromptPurchase',
-	'PromptThirdPartyPurchase', 'Publish', 'GetMessageId', 'OpenBrowserWindow', 'RequestInternal',
-	'ExecuteJavaScript', 'openvideosfolder', 'openscreenshotsfolder', 'getrobuxbalance',
-	'performpurchase', 'promptbundlepurchase', 'promptnativepurchase', 'promptproductpurchase',
-	'promptpurchase', 'promptthirdpartypurchase', 'publish', 'getmessageid', 'openbrowserwindow',
-	'requestinternal', 'executejavascript', 'openVideosFolder', 'openScreenshotsFolder',
-	'getRobuxBalance', 'performPurchase', 'promptBundlePurchase', 'promptNativePurchase',
-	'promptProductPurchase', 'promptPurchase', 'promptThirdPartyPurchase', 'publish',
-	'getMessageId', 'openBrowserWindow', 'requestInternal', 'executeJavaScript',
-	'ToggleRecording', 'TakeScreenshot', 'HttpRequestAsync', 'GetLast', 'SendCommand',
-	'GetAsync', 'GetAsyncFullUrl', 'RequestAsync', 'MakeRequest', 'OpenUrl'
-}
-
-local gmt = getrawmetatable(game)
-local old_index = gmt.__index
-local old_namecall = gmt.__namecall
-local _game = game
-
-setreadonly(gmt, false)
-
-gmt.__index = function(self, i)
-	if self == _game and (i == 'HttpGet' or i == 'HttpGetAsync') then
-		return function(self, ...)
-			return _game:HttpGet(...)
-		end
-	elseif self == _game and i == 'GetObjects' then
-		return function(self, ...)
-			return _game:GetObjects(...)
-		end
-	elseif table.find(security, i) then
-		return false, "Disabled for security reasons." 
-	end
-	return old_index(self, i)
+getgenv().hookmetamethod = function(self, method, func)
+    local mt = getrawmetatable(self)
+    local old = mt[method]
+    setreadonly(mt, false)
+    mt[method] = func
+    setreadonly(mt, true)
+    return old
 end
-
-gmt.__namecall = function(self, ...)
-	if self == _game and (getnamecallmethod() == 'HttpGet' or getnamecallmethod() == 'HttpGetAsync') then
-		return httpget(...)
-	elseif self == _game and getnamecallmethod() == 'GetObjects' then
-		return GetObjects(...)
-	elseif table.find(security, getnamecallmethod()) then
-		return false, "Disabled for security reasons."
-	end
-	return old_namecall(self, ...)
-end
-
-setreadonly(gmt, true)
 
 getgenv().getrunningscripts = newcclosure(function()
 	local scripts = {}
@@ -150,6 +109,56 @@ end
 getgenv().info = newcclosure(function(...)
 	game:GetService('TestService'):Message(table.concat({...}, ' '))
 end)
+
+local security = {
+	'OpenVideosFolder', 'OpenScreenshotsFolder', 'GetRobuxBalance', 'PerformPurchase',
+	'PromptBundlePurchase', 'PromptNativePurchase', 'PromptProductPurchase', 'PromptPurchase',
+	'PromptThirdPartyPurchase', 'Publish', 'GetMessageId', 'OpenBrowserWindow', 'RequestInternal',
+	'ExecuteJavaScript', 'openvideosfolder', 'openscreenshotsfolder', 'getrobuxbalance',
+	'performpurchase', 'promptbundlepurchase', 'promptnativepurchase', 'promptproductpurchase',
+	'promptpurchase', 'promptthirdpartypurchase', 'publish', 'getmessageid', 'openbrowserwindow',
+	'requestinternal', 'executejavascript', 'openVideosFolder', 'openScreenshotsFolder',
+	'getRobuxBalance', 'performPurchase', 'promptBundlePurchase', 'promptNativePurchase',
+	'promptProductPurchase', 'promptPurchase', 'promptThirdPartyPurchase', 'publish',
+	'getMessageId', 'openBrowserWindow', 'requestInternal', 'executeJavaScript',
+	'ToggleRecording', 'TakeScreenshot', 'HttpRequestAsync', 'GetLast', 'SendCommand',
+	'GetAsync', 'GetAsyncFullUrl', 'RequestAsync', 'MakeRequest', 'OpenUrl'
+}
+
+local gmt = getrawmetatable(game)
+local old_index = gmt.__index
+local old_namecall = gmt.__namecall
+local _game = game
+
+setreadonly(gmt, false)
+
+gmt.__index = function(self, i)
+	if self == _game and (i == 'HttpGet' or i == 'HttpGetAsync') then
+		return function(self, ...)
+			return _game:HttpGet(...)
+		end
+	elseif self == _game and i == 'GetObjects' then
+		return function(self, ...)
+			return _game:GetObjects(...)
+		end
+	elseif table.find(security, i) then
+		return false, "Disabled for security reasons." 
+	end
+	return old_index(self, i)
+end
+
+gmt.__namecall = function(self, ...)
+	if self == _game and (getnamecallmethod() == 'HttpGet' or getnamecallmethod() == 'HttpGetAsync') then
+		return httpget(...)
+	elseif self == _game and getnamecallmethod() == 'GetObjects' then
+		return GetObjects(...)
+	elseif table.find(security, getnamecallmethod()) then
+		return false, "Disabled for security reasons."
+	end
+	return old_namecall(self, ...)
+end
+
+setreadonly(gmt, true)
 
 local lz4 = {}
 
