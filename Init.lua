@@ -556,7 +556,7 @@ getgenv()["GetLoadedModules"] = getloadedmodules
 -- Returns a list of scripts that are currently running.
 getgenv()["getrunningscripts"] = newcclosure(function()
     local RunningScripts = {}
-    for _, v in ipairs(Players["LocalPlayer"]:GetDescendants()) do
+    for _, v in ipairs(Players.LocalPlayer:GetDescendants()) do
         if v:IsA("LocalScript") or v:IsA("ModuleScript") then
             RunningScripts[#RunningScripts + 1] = v
         end
