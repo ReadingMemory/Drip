@@ -210,7 +210,7 @@ end
 getgenv().info = newcclosure(function(...)
 	game:GetService('TestService'):Message(table.concat({...}, ' '))
 end)
-
+--[[
 local security = {
 	'OpenVideosFolder', 'OpenScreenshotsFolder', 'GetRobuxBalance', 'PerformPurchase',
 	'PromptBundlePurchase', 'PromptNativePurchase', 'PromptProductPurchase', 'PromptPurchase',
@@ -259,7 +259,7 @@ gmt.__namecall = function(self, ...)
 	return old_namecall(self, ...)
 end
 
-setreadonly(gmt, true)
+setreadonly(gmt, true)]]
 
 local lz4 = {}
 
