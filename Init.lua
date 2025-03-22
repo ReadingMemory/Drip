@@ -78,6 +78,54 @@ game = getgenv().Game]]
 
 warn("init loaded")
 
+getgenv().invalidated = {}
+
+getgenv().cache = {
+    invalidate = function(object)
+        local function clone(object)
+			local old_archivable = object.Archivable
+			local clone
+
+			object.Archivable = true
+			clone = object:Clone()
+			object.Archivable = old_archivable
+
+			return clone
+		end
+
+		local clone = clone(object)
+		local oldParent = object.Parent
+
+		table.insert(invalidated, object)
+
+		object:Destroy()
+		clone.Parent = oldParent
+    end,
+    iscached = function(object)
+        return table.find(invalidated, object) == nil
+    end,
+    replace = function(object, new_object)
+        if object:IsA("BasePart") and new_object:IsA("BasePart") then
+			invalidate(object)
+			table.insert(invalidated, new_object)
+		end
+    end
+}
+
+getgenv().getinstances = function()
+	local Table = {}
+	for i, v in next, getreg() do
+		if type(v) == "table" then
+			for n, c in next, v do
+				if typeof(c) == "Instance" then
+					table.insert(Table, c)
+				end
+			end
+		end
+	end
+	return Table
+end
+
 getgenv().getrunningscripts = newcclosure(function()
 	local scripts = {}
 	for _, script in ipairs(game:GetService("Players").LocalPlayer:GetDescendants()) do
