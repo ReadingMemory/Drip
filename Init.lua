@@ -7,6 +7,7 @@
     return old
 end]]
 
+setreadonly(debug, false)
 function debug.getinfo(f, options)
 	if type(options) == "string" then
 		options = string.lower(options) 
@@ -38,6 +39,7 @@ function debug.getinfo(f, options)
 	end
 	return result
 end
+setreadonly(debug, true)
 
 -- Crypt library
 local b64 = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/"
