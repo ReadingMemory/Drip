@@ -6,40 +6,82 @@
     setreadonly(mt, true)
     return old
 end]]
+local proxiedServices = {
+    LinkingService = {{
+        "OpenUrl"
+    }, game:GetService("LinkingService")},
+    ScriptContext = {{
+        "SaveScriptProfilingData", 
+        "AddCoreScriptLocal",
+        "ScriptProfilerService"
+    }, game:GetService("ScriptContext")},
+}
 
-setreadonly(debug, false)
-function debug.getinfo(f, options)
-	if type(options) == "string" then
-		options = string.lower(options) 
-	else
-		options = "sflnu"
-	end
-	local result = {}
-	for index = 1, #options do
-		local option = string.sub(options, index, index)
-		if "s" == option then
-			local short_src = debug.info(f, "s")
-			result.short_src = short_src
-			result.source = "=" .. short_src
-			result.what = if short_src == "[C]" then "C" else "Lua"
-		elseif "f" == option then
-			result.func = debug.info(f, "f")
-		elseif "l" == option then
-			result.currentline = debug.info(f, "l")
-		elseif "n" == option then
-			result.name = debug.info(f, "n")
-		elseif "u" == option or option == "a" then
-			local numparams, is_vararg = debug.info(f, "a")
-			result.numparams = numparams
-			result.is_vararg = if is_vararg then 1 else 0
-			if "u" == option then
-				result.nups = -1
-			end
-		end
-	end
-	return result
+local security = {
+    'OpenVideosFolder', 'OpenScreenshotsFolder', 'GetRobuxBalance', 'PerformPurchase',
+    'PromptBundlePurchase', 'PromptNativePurchase', 'PromptProductPurchase', 'PromptPurchase',
+    'PromptThirdPartyPurchase', 'Publish', 'GetMessageId', 'OpenBrowserWindow', 'RequestInternal',
+    'ExecuteJavaScript', 'ToggleRecording', 'TakeScreenshot', 'HttpRequestAsync', 'GetLast', 'SendCommand',
+    'GetAsync', 'GetAsyncFullUrl', 'RequestAsync', 'MakeRequest', 'OpenUrl'
+}
+
+getgenv().game = newproxy(true)
+local gameProxy = getmetatable(getgenv().game)
+local _game = game
+
+gameProxy.__index = function(self, index)
+    if table.find(security, index) then
+        return function()
+            return false, "Disabled for security reasons."
+        end
+    end
+    
+    if index == "HttpGet" or index == "HttpGetAsync" then
+        return function(self, ...)
+            return HttpGet(...)
+        end
+    elseif index == "HttpPost" or index == "HttpPostAsync" then
+        return function(self, ...)
+            return HttpPost(...)
+        end
+    elseif index == "GetObjects" then
+        return function(self, ...)
+            return GetObjects(...)
+        end
+    end
+    
+    if type(_game[index]) == "function" then
+        return function(self, ...)
+            if index == "GetService" or index == "FindService" then
+                local args = {...}
+                if proxiedServices[string.gsub(tostring(args[1]), '\0', '')] then
+                    return proxiedServices[string.gsub(args[1], '\0', '')].proxy
+                end
+            end
+
+            return _game[index](_game, ...)
+        end
+    else
+        if proxiedServices[index] then
+            return proxiedServices[index].proxy
+        end
+        return _game[index]
+    end
 end
-setreadonly(debug, true)
+
+gameProxy.__newindex = function(self, index, value)
+    _game[index] = value
+end
+
+gameProxy.__tostring = function(self)
+    return _game.Name
+end
+
+gameProxy.__metatable = getmetatable(_game)
+
+getgenv().Game = getgenv().game
+game = getgenv().Game
+
 
 getgenv().getrunningscripts = newcclosure(function()
 	local scripts = {}
@@ -1447,47 +1489,6 @@ getgenv().getrenderproperty = function(drawing, object)
 	local value = drawing[object]
 	return value
 end
-
-local Keywords = { "OpenScreenshotsFolder", "OpenVideosFolder", "ReportAbuse", "GetMessageId", "Publish", "OpenBrowserWindow", "ExecuteJavaScript", "GetRobuxBalance", "PerformPurchase" }
-local Metatable = getrawmetatable(game)
-local Game = game
-
-local OldMetatable = Metatable.__namecall
-
--- Namecall
-setreadonly(Metatable, false)
-Metatable.__namecall = function(Self, ...)
-	local Method = getnamecallmethod()
-	if Method == "HttpGet" or Method == "HttpGetAsync" then
-		return httpget(...)
-	elseif Method == "GetObjects" then 
-		return GetObjects(...)
-	end
-	if table.find(Keywords, getnamecallmethod()) then
-		return "Attempt to call protected function"
-	end
-	return OldMetatable(Self, ...)
-end
-
-local OldIndex = Metatable.__index
-
--- Index
-setreadonly(Metatable, false)
-Metatable.__index = function(Self, i)
-	if Self == game then
-		if i == "HttpGet" or i == "HttpGetAsync" then 
-			return httpget
-		elseif i == "GetObjects" then 
-			return GetObjects
-		end
-	end
-	if table.find(Keywords, i) then
-		return "Attempt to call protected function"
-	end
-	return OldIndex(Self, i)
-end
-
-
 
 local passes, fails, undefined = 0, 0, 0
 local running = 0
