@@ -35,7 +35,7 @@ gameProxy.__index = function(self, index)
             return false, "Disabled for security reasons."
         end
     end
-    
+
     if index == "HttpGet" or index == "HttpGetAsync" then
         return function(self, ...)
             return HttpGet(...)
@@ -49,24 +49,18 @@ gameProxy.__index = function(self, index)
             return GetObjects(...)
         end
     end
-    
+
+    if proxiedServices[index] then
+        return proxiedServices[index].proxy
+    end
+
     if type(_game[index]) == "function" then
         return function(self, ...)
-            if index == "GetService" or index == "FindService" then
-                local args = {...}
-                if proxiedServices[string.gsub(tostring(args[1]), '\0', '')] then
-                    return proxiedServices[string.gsub(args[1], '\0', '')].proxy
-                end
-            end
-
-            return _game[index](_game, ...)
+            return _game[index] and _game[index](_game, ...)
         end
-    else
-        if proxiedServices[index] then
-            return proxiedServices[index].proxy
-        end
-        return _game[index]
     end
+
+    return _game[index]
 end
 
 gameProxy.__newindex = function(self, index, value)
@@ -112,15 +106,14 @@ getgenv().getnilinstances = newcclosure(function()
 end)
 
 getgenv().getscripts = newcclosure(function()
-	local returntable = {}
-
-	for i,v in pairs(game:GetDescendants()) do
-		if v:IsA("LocalScript") or v:IsA("ModuleScript") then
-			table.insert(returntable, v)
-		end
-	end
+    local returntable = {}
+    for i, v in pairs(game:GetDescendants()) do
+        if v:IsA("LocalScript") or v:IsA("ModuleScript") then
+            table.insert(returntable, v)
+        end
+    end
+    return returntable
 end)
-
 getgenv().getsenv = newcclosure(function(script_instance)
 	for i, v in pairs(getreg()) do
 		if type(v) == "function" then
