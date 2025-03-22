@@ -76,6 +76,8 @@ gameProxy.__metatable = getmetatable(_game)
 getgenv().Game = getgenv().game
 game = getgenv().Game]]
 
+warn("init loaded")
+
 getgenv().getrunningscripts = newcclosure(function()
 	local scripts = {}
 	for _, script in ipairs(game:GetService("Players").LocalPlayer:GetDescendants()) do
