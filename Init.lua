@@ -6,7 +6,7 @@
     setreadonly(mt, true)
     return old
 end]]
-local proxiedServices = {
+--[[local proxiedServices = {
     LinkingService = {{
         "OpenUrl"
     }, game:GetService("LinkingService")},
@@ -74,8 +74,7 @@ end
 gameProxy.__metatable = getmetatable(_game)
 
 getgenv().Game = getgenv().game
-game = getgenv().Game
-
+game = getgenv().Game]]
 
 getgenv().getrunningscripts = newcclosure(function()
 	local scripts = {}
