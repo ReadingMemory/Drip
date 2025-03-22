@@ -142,7 +142,7 @@ getgenv().getscripthash = newcclosure(function(script)
 end)
 
 getgenv().getnilinstances = newcclosure(function()
-	local inst = GetInstanceList()
+	local inst = getinstances()
 	local r = {}
 
 	for i, v in pairs(inst) do
