@@ -1,239 +1,288 @@
 --!native
 --!optimize 2
 
-if not game:IsLoaded() then game["Loaded"]:Wait() end
-
-local VirtualInputManager = game:GetService("VirtualInputManager")
-local UserInputService = game:GetService("UserInputService")
-local InsertService = game:GetService("InsertService")
-local RunService = game:GetService("RunService")
-local Players = game:GetService("Players")
-
-local ExploitInfo = table.freeze({
-    ["Name"] = "%Drip%",
-})
-
-local ClientInfo = {
-	["IsWindowFocused"] = true
+--[[getgenv().hookmetamethod = function(self, method, func)
+    local mt = getrawmetatable(self)
+    local old = mt[method]
+    setreadonly(mt, false)
+    mt[method] = func
+    setreadonly(mt, true)
+    return old
+end]]
+--[[local proxiedServices = {
+    LinkingService = {{
+        "OpenUrl"
+    }, game:GetService("LinkingService")},
+    ScriptContext = {{
+        "SaveScriptProfilingData", 
+        "AddCoreScriptLocal",
+        "ScriptProfilerService"
+    }, game:GetService("ScriptContext")},
 }
 
-local RobloxEnvironment = table.freeze({
-	["print"] = print, ["warn"] = warn, ["error"] = error, ["assert"] = assert, ["collectgarbage"] = collectgarbage, ["require"] = require,
-	["select"] = select, ["tonumber"] = tonumber, ["tostring"] = tostring, ["type"] = type, ["xpcall"] = xpcall,
-	["pairs"] = pairs, ["next"] = next, ["ipairs"] = ipairs, ["newproxy"] = newproxy, ["rawequal"] = rawequal, ["rawget"] = rawget,
-	["rawset"] = rawset, ["rawlen"] = rawlen, ["gcinfo"] = gcinfo,
+local security = {
+    'OpenVideosFolder', 'OpenScreenshotsFolder', 'GetRobuxBalance', 'PerformPurchase',
+    'PromptBundlePurchase', 'PromptNativePurchase', 'PromptProductPurchase', 'PromptPurchase',
+    'PromptThirdPartyPurchase', 'Publish', 'GetMessageId', 'OpenBrowserWindow', 'RequestInternal',
+    'ExecuteJavaScript', 'ToggleRecording', 'TakeScreenshot', 'HttpRequestAsync', 'GetLast', 'SendCommand',
+    'GetAsync', 'GetAsyncFullUrl', 'RequestAsync', 'MakeRequest', 'OpenUrl'
+}
 
-	["coroutine"] = {
-		["create"] = coroutine["create"], ["resume"] = coroutine["resume"], ["running"] = coroutine["running"],
-		["status"] = coroutine["status"], ["wrap"] = coroutine["wrap"], ["yield"] = coroutine["yield"],
-	},
+getgenv().game = newproxy(true)
+local gameProxy = getmetatable(getgenv().game)
+local _game = game
 
-	["bit32"] = {
-		["arshift"] = bit32["arshift"], ["band"] = bit32["band"], ["bnot"] = bit32["bnot"], ["bor"] = bit32["bor"], ["btest"] = bit32["btest"],
-		["extract"] = bit32["extract"], ["lshift"] = bit32["lshift"], ["replace"] = bit32["replace"], ["rshift"] = bit32["rshift"], ["xor"] = bit32["xor"],
-	},
+gameProxy.__index = function(self, index)
+    if table.find(security, index) then
+        return function()
+            return false, "Disabled for security reasons."
+        end
+    end
 
-	["math"] = {
-		["abs"] = math["abs"], ["acos"] = math["acos"], ["asin"] = math["asin"], ["atan"] = math["atan"], ["atan2"] = math["atan2"], ["ceil"] = math["ceil"],
-		["cos"] = math["cos"], ["cosh"] = math["cosh"], ["deg"] = math["deg"], ["exp"] = math["exp"], ["floor"] = math["floor"], ["fmod"] = math["fmod"],
-		["frexp"] = math["frexp"], ["ldexp"] = math["ldexp"], ["log"] = math["log"], ["log10"] = math["log10"], ["max"] = math["max"], ["min"] = math["min"],
-		["modf"] = math["modf"], ["pow"] = math["pow"], ["rad"] = math["rad"], ["random"] = math["random"], ["randomseed"] = math["randomseed"],
-		["sin"] = math["sin"], ["sinh"] = math["sinh"], ["sqrt"] = math["sqrt"], ["tan"] = math["tan"], ["tanh"] = math["tanh"]
-	},
+    if index == "HttpGet" or index == "HttpGetAsync" then
+        return function(self, ...)
+            return HttpGet(...)
+        end
+    elseif index == "HttpPost" or index == "HttpPostAsync" then
+        return function(self, ...)
+            return HttpPost(...)
+        end
+    elseif index == "GetObjects" then
+        return function(self, ...)
+            return GetObjects(...)
+        end
+    end
 
-	["string"] = {
-		["byte"] = string["byte"], ["char"] = string["char"], ["find"] = string["find"], ["format"] = string["format"], ["gmatch"] = string["gmatch"],
-		["gsub"] = string["gsub"], ["len"] = string["len"], ["lower"] = string["lower"], ["match"] = string["match"], ["pack"] = string["pack"],
-		["packsize"] = string["packsize"], ["rep"] = string["rep"], ["reverse"] = string["reverse"], ["sub"] = string["sub"],
-		["unpack"] = string["unpack"], ["upper"] = string["upper"],
-	},
+    if proxiedServices[index] then
+        return proxiedServices[index].proxy
+    end
 
-	["table"] = {
-		["clone"] = table.clone, ["concat"] = table.concat, ["insert"] = table.insert, ["pack"] = table.pack, ["remove"] = table.remove, ["sort"] = table.sort,
-		["unpack"] = table.unpack,
-	},
+    if type(_game[index]) == "function" then
+        return function(self, ...)
+            return _game[index] and _game[index](_game, ...)
+        end
+    end
 
-	["utf8"] = {
-		["char"] = utf8["char"], ["charpattern"] = utf8["charpattern"], ["codepoint"] = utf8["codepoint"], ["codes"] = utf8["codes"],
-		["len"] = utf8["len"], ["nfdnormalize"] = utf8["nfdnormalize"], ["nfcnormalize"] = utf8["nfcnormalize"],
-	},
+    return _game[index]
+end
 
-	["os"] = {
-		["clock"] = os["clock"], ["date"] = os["date"], ["difftime"] = os["difftime"], ["time"] = os["time"],
-	},
+gameProxy.__newindex = function(self, index, value)
+    _game[index] = value
+end
 
-	["delay"] = delay, ["elapsedTime"] = elapsedTime, ["spawn"] = spawn, ["tick"] = tick, ["time"] = time, ["typeof"] = typeof,
-	["UserSettings"] = UserSettings, ["version"] = version, ["wait"] = wait, ["_VERSION"] = _VERSION,
+gameProxy.__tostring = function(self)
+    return _game.Name
+end
 
-	["task"] = {
-		["defer"] = task["defer"], ["delay"] = task["delay"], ["spawn"] = task["spawn"], ["wait"] = task["wait"], ["cancel"] = task["cancel"]
-	},
+gameProxy.__metatable = getmetatable(_game)
 
-	["debug"] = {
-		["traceback"] = debug["traceback"], ["profilebegin"] = debug["profilebegin"], ["profileend"] = debug["profileend"],
-	},
+getgenv().Game = getgenv().game
+game = getgenv().Game]]
 
-	["game"] = game, ["workspace"] = workspace, ["Game"] = game, ["Workspace"] = workspace,
+warn("init loaded")
 
-	["getmetatable"] = getmetatable, ["setmetatable"] = setmetatable
-})
+getgenv().invalidated = {}
 
--- Returns local asset.
-getgenv()["getobjects"] = newcclosure(function(Asset)
-    return { InsertService:LoadLocalAsset(Asset) }
+getgenv().cache = {
+    invalidate = function(object)
+        local function clone(object)
+			local old_archivable = object.Archivable
+			local clone
+
+			object.Archivable = true
+			clone = object:Clone()
+			object.Archivable = old_archivable
+
+			return clone
+		end
+
+		local clone = clone(object)
+		local oldParent = object.Parent
+
+		table.insert(invalidated, object)
+
+		object:Destroy()
+		clone.Parent = oldParent
+    end,
+    iscached = function(object)
+        return table.find(invalidated, object) == nil
+    end,
+    replace = function(object, new_object)
+        if object:IsA("BasePart") and new_object:IsA("BasePart") then
+			invalidate(object)
+			table.insert(invalidated, new_object)
+		end
+    end
+}
+
+getgenv().getrunningscripts = newcclosure(function()
+	local scripts = {}
+	for _, script in ipairs(game:GetService("Players").LocalPlayer:GetDescendants()) do
+		if script:IsA("LocalScript") or script:IsA("ModuleScript") then
+			scripts[#scripts + 1] = script
+		end
+	end
+	return scripts
 end)
 
-getgenv()["get_objects"] = getobjects
-getgenv()["GetObjects"] = getobjects
 
--- Returns the script responsible for the currently running function.
-getgenv()["getcallingscript"] = (function() return getgenv(0)["script"] end)
-getgenv()["get_calling_script"] = getcallingscript
-getgenv()["GetCallingScript"] = getcallingscript
+getgenv().getscripthash = newcclosure(function(script)
+	return script:GetHash()
+end)
 
--- Generates a new closure using the bytecode of script.
-getgenv()["getscriptclosure"] = (function(script)
-	return function()
-		return getrenv()["table"].clone(getrenv().require(script))
+getgenv().getscripts = newcclosure(function()
+    local returntable = {}
+    for i, v in pairs(game:GetDescendants()) do
+        if v:IsA("LocalScript") or v:IsA("ModuleScript") then
+            table.insert(returntable, v)
+        end
+    end
+    return returntable
+end)
+
+getgenv().getnilinstances = newcclosure(function()
+    return {}
+end)
+getgenv().getsenv = newcclosure(function(script_instance)
+	for i, v in pairs(getreg()) do
+		if type(v) == "function" then
+			if getfenv(v).script == script_instance then
+				return getfenv(v)
+			end
+		end
 	end
 end)
 
-getgenv()["get_script_closure"] = getscriptclosure
-getgenv()["GetScriptClosure"] = getscriptclosure
+getgenv().getmodules = newcclosure(function()
+	local t = {}
+	for i,v in pairs(getinstances()) do
+		if v:IsA('ModuleScript') then
+			table.insert(t, v)
+		end
+	end
+	return t
+end)
 
-getgenv()["getscriptfunction"] = getscriptclosure
-getgenv()["get_script_function"] = getscriptclosure
-getgenv()["GetScriptFunction"] = getscriptclosure
+getgenv().getloadedmodules = newcclosure(function()
+	local t = {}
+	for i,v in pairs(getinstances()) do
+		if v:IsA('ModuleScript') then
+			table.insert(t, v)
+		end
+	end
+	return t
+end)
 
-local function RobloxConsoleHandler(...)
-	warn("Disabled \"rconsole\" library.")
+local VirtualInputManager = game:GetService("VirtualInputManager")
+
+getgenv().mouse1click = function()
+	VirtualInputManager:SendMouseButtonEvent(0, 0, 0, true, game, 1)
+	VirtualInputManager:SendMouseButtonEvent(0, 0, 0, false, game, 1)
 end
 
-getgenv()["rconsoleclear"] = newcclosure(RobloxConsoleHandler)
-getgenv()["consoleclear"] = rconsoleclear
-getgenv()["console_clear"] = rconsoleclear
-getgenv()["ConsoleClear"] = rconsoleclear
+getgenv().mouse1press = function()
+	VirtualInputManager:SendMouseButtonEvent(0, 0, 0, true, game, 1)
+end
 
-getgenv()["rconsolecreate"] = newcclosure(RobloxConsoleHandler)
-getgenv()["consolecreate"] = rconsolecreate
-getgenv()["console_create"] = rconsolecreate
-getgenv()["ConsoleCreate"] = rconsolecreate
+getgenv().mouse1release = function()
+	VirtualInputManager:SendMouseButtonEvent(0, 0, 0, false, game, 1)
+end
 
-getgenv()["rconsoledestroy"] = newcclosure(RobloxConsoleHandler)
-getgenv()["consoledestroy"] = rconsoledestroy
-getgenv()["console_destroy"] = rconsoledestroy
-getgenv()["ConsoleDestroy"] = rconsoledestroy
+getgenv().mouse2click = function()
+	VirtualInputManager:SendMouseButtonEvent(0, 0, 1, true, game, 1)
+	VirtualInputManager:SendMouseButtonEvent(0, 0, 1, false, game, 1)
+end
 
-getgenv()["rconsoleinput"] = newcclosure(RobloxConsoleHandler)
-getgenv()["consoleinput"] = rconsoleinput
-getgenv()["console_input"] = rconsoleinput
-getgenv()["ConsoleInput"] = rconsoleinput
+getgenv().mouse2press = function()
+	VirtualInputManager:SendMouseButtonEvent(0, 0, 1, true, game, 1)
+end
 
-getgenv()["rconsoleprint"] = newcclosure(RobloxConsoleHandler)
-getgenv()["consoleprint"] = rconsoleprint
-getgenv()["console_print"] = rconsoleprint
-getgenv()["ConsolePrint"] = rconsoleprint
+getgenv().mouse2release = function()
+	VirtualInputManager:SendMouseButtonEvent(0, 0, 1, false, game, 1)
+end
 
-getgenv()["rconsolesettitle"] = newcclosure(RobloxConsoleHandler)
-getgenv()["rconsolename"] = rconsolesettitle
-getgenv()["consolesettitle"] = rconsolesettitle
-getgenv()["console_set_title"] = rconsolesettitle
-getgenv()["ConsoleSetTitle"] = rconsolesettitle
+getgenv().mousemoveabs = function(x, y)
+	VirtualInputManager:SendMouseMoveEvent(x, y, game)
+end
 
--- Returns the global environment of the game client. It can be used to access the global functions that LocalScripts and ModuleScripts use.
-getgenv()["getrenv"] = newcclosure(function() return RobloxEnvironment end)
+getgenv().mousemoverel = function(x, y)
+	local currentPos = UserInputService:GetMouseLocation()
+	VirtualInputManager:SendMouseMoveEvent(currentPos.X + x, currentPos.Y + y, game)
+end
 
--- Returns whether the game's window is in focus. Must be true for other input functions to work.
-getgenv()["isrbxactive"] = newcclosure(function()
-    return ClientInfo["IsWindowFocused"]
+getgenv().mousescroll = function(pixels)
+	VirtualInputManager:SendMouseWheelEvent(0, 0, pixels > 0, game)
+end
+
+getgenv().info = newcclosure(function(...)
+	game:GetService('TestService'):Message(table.concat({...}, ' '))
 end)
 
-getgenv()["is_rbx_active"] = isrbxactive
-getgenv()["IsRbxActive"] = isrbxactive
-
-getgenv()["isgameactive"] = isrbxactive
-getgenv()["is_game_active"] = isrbxactive
-getgenv()["IsGameActive"] = isrbxactive
-
-UserInputService["WindowFocused"]:Connect(function()
-    ClientInfo["IsWindowFocused"] = true
-end)
-
-UserInputService["WindowFocusReleased"]:Connect(function()
-    ClientInfo["IsWindowFocused"] = false
-end)
-
--- Dispatches a left mouse button click.
-getgenv()["mouse1click"] = newcclosure(function()
-    VirtualInputManager:SendMouseButtonEvent(0, 0, 0, true, game, 1)
-    VirtualInputManager:SendMouseButtonEvent(0, 0, 0, false, game, 1)
-end)
-
-getgenv()["Mouse1Click"] = mouse1click
-
--- Dispatches a left mouse button press.
-getgenv()["mouse1press"] = newcclosure(function()
-    VirtualInputManager:SendMouseButtonEvent(0, 0, 0, true, game, 1)
-end)
-
-getgenv()["Mouse1Press"] = mouse1press
-
--- Dispatches a left mouse button release.
-getgenv()["mouse1release"] = newcclosure(function()
-    VirtualInputManager:SendMouseButtonEvent(0, 0, 0, false, game, 1)
-end)
-
-getgenv()["Mouse1Release"] = mouse1release
-
--- Dispatches a right mouse button click.
-getgenv()["mouse2click"] = newcclosure(function()
-    VirtualInputManager:SendMouseButtonEvent(0, 0, 1, true, game, 1)
-    VirtualInputManager:SendMouseButtonEvent(0, 0, 1, false, game, 1)
-end)
-
-getgenv()["Mouse2Click"] = mouse2click
-
--- Dispatches a right mouse button press.
-getgenv()["mouse2press"] = newcclosure(function()
-    VirtualInputManager:SendMouseButtonEvent(0, 0, 1, true, game, 1)
-end)
-
-getgenv()["Mouse2Press"] = mouse2press
-
--- Dispatches a right mouse button release.
-getgenv()["mouse2release"] = newcclosure(function()
-    VirtualInputManager:SendMouseButtonEvent(0, 0, 1, false, game, 1)
-end)
-
-getgenv()["Mouse2Release"] = mouse2release
-
--- Moves the mouse cursor to the specified absolute position.
-getgenv()["mousemoveabs"] = newcclosure(function(x, y)
-    VirtualInputManager:SendMouseMoveEvent(x, y, game)
-end)
-
-getgenv()["MouseMoveAbs"] = mousemoveabs
-
--- Adjusts the mouse cursor by the specified relative amount.
-getgenv()["mousemoverel"] = newcclosure(function(x, y)
-    local MouseLocation = UserInputService:GetMouseLocation()
-    VirtualInputManager:SendMouseMoveEvent(MouseLocation.X + x, MouseLocation.Y + y, game)
-end)
-
-getgenv()["MouseMoveRel"] = mousemoverel
-
--- Dispatches a mouse scroll by the specified number of pixels.
-getgenv()["mousescroll"] = newcclosure(function(Pixels)
-    VirtualInputManager:SendMouseWheelEvent(0, 0, Pixels > 0, game)
-end)
-
-getgenv()["MouseScroll"] = mousescroll
+local _isscriptable = clonefunction(isscriptable)
+local _setscriptable = clonefunction(setscriptable)
+local ScriptableCache = {}
 
 --[[
-	Dispatches a click or hover event to the given ClickDetector. When absent, `distance` defaults to zero, and `event` defaults to "MouseClick".
-	Possible input events include 'MouseClick', 'RightMouseClick', 'MouseHoverEnter', and 'MouseHoverLeave'.
+	Returns the value of a hidden property of `object`, which cannot be indexed normally.
+	If the property is hidden, the second return value will be `true`. Otherwise, it will be `false`.
 ]]
-getgenv()["fireclickdetector"] = newcclosure(function(Target)
+getgenv().gethiddenproperty = newcclosure(function(Inst, Idx) 
+	assert(typeof(Inst) == "Instance", "invalid argument #1 to 'gethiddenproperty' [Instance expected]", 2);
+	local Was = _isscriptable(Inst, Idx);
+	_setscriptable(Inst, Idx, true)
+
+	local Value = Inst[Idx]
+	_setscriptable(Inst, Idx, Was)
+
+	return Value, not Was
+end)
+
+getgenv().get_hidden_property = gethiddenproperty
+getgenv().GetHiddenProperty = gethiddenproperty
+
+-- Sets the value of a hidden property of `object`, which cannot be set normally. Returns whether the property was hidden.
+getgenv().sethiddenproperty = (function(Inst, Idx, Value) 
+	assert(typeof(Inst) == "Instance", "invalid argument #1 to 'sethiddenproperty' [Instance expected]", 2);
+	local Was = _isscriptable(Inst, Idx);
+	_setscriptable(Inst, Idx, true)
+
+	Inst[Idx] = Value
+
+	_setscriptable(Inst, Idx, Was)
+
+	return not Was
+end)
+
+getgenv().set_hidden_property = sethiddenproperty
+getgenv().SetHiddenProperty = sethiddenproperty
+
+getgenv().isscriptable = newcclosure(function(Inst: Instance, Property: string)
+    local InstanceCache = ScriptableCache[Inst]
+    if InstanceCache then
+        local Value = InstanceCache[Property]
+        if Value ~= nil then
+            return Value
+        end
+    end
+    return _isscriptable(Inst, Property)
+end)
+
+getgenv().is_scriptable = isscriptable
+getgenv().IsScriptable = isscriptable
+
+getgenv().setscriptable = newcclosure(function(Inst: Instance, Property: string, Scriptable: boolean)
+    local WasScriptable = _isscriptable(Inst, Property)
+    if ScriptableCache[Inst] == nil then
+        ScriptableCache[Inst] = {}
+    end
+    ScriptableCache[Inst][Property] = Scriptable
+    return WasScriptable
+end)
+
+getgenv().set_scriptable = setscriptable
+getgenv().SetScriptable = setscriptable
+
+getgenv().fireclickdetector = newcclosure(function(Target)
 	assert(typeof(Target) == "Instance", "invalid argument #1 to 'fireclickdetector' (Instance expected, got " .. type(Target) .. ") ", 2)
 	local ClickDetector = Target:FindFirstChild("ClickDetector") or Target
 	local PreviousParent = ClickDetector["Parent"]
@@ -268,11 +317,11 @@ getgenv()["fireclickdetector"] = newcclosure(function(Target)
 	end)
 end)
 
-getgenv()["fire_click_detector"] = fireclickdetector
-getgenv()["FireClickDetector"] = fireclickdetector
+getgenv().fire_click_detector = fireclickdetector
+getgenv().FireClickDetector = fireclickdetector
 
 -- Dispatches a ProximityPrompt.
-getgenv()["fireproximityprompt"] = (function(ProximityPrompt, Amount, Skip)
+getgenv().fireproximityprompt = (function(ProximityPrompt, Amount, Skip)
 	assert(typeof(ProximityPrompt) == "Instance", "invalid argument #1 to 'fireproximityprompt' (Instance expected, got " .. typeof(ProximityPrompt) .. ") ", 2)
 	assert(ProximityPrompt:IsA("ProximityPrompt"), "invalid argument #1 to 'fireproximityprompt' (ProximityPrompt expected, got " .. ProximityPrompt["ClassName"] .. ") ", 2)
 
@@ -301,938 +350,1299 @@ getgenv()["fireproximityprompt"] = (function(ProximityPrompt, Amount, Skip)
 	ProximityPrompt["HoldDuration"] = OldHoldDuration
 end)
 
-getgenv()["fire_proximity_prompt"] = fireproximityprompt
-getgenv()["FireProximityPrompt"] = fireproximityprompt
-
--- Creates a list of Connection objects for the functions connected to `signal`.
-getgenv()["getconnections"] = newcclosure(function(Event)
-    assert(typeof(Event) == "RBXScriptSignal", "Argument must be a RBXScriptSignal")
-
-    local Connections = {}
-
-    local Connection = Event:Connect(function() end)
-    
-    local ConnectionInfo = {
-        ["Enabled"] = true,
-        ["ForeignState"] = false,
-        ["LuaConnection"] = true,
-        ["Function"] = function() end,
-        ["Thread"] = getrenv()["coroutine"].create(function() end),
-        ["Fire"] = function() Connection:Fire() end,
-        ["Defer"] = function() task.defer(Connection["Fire"], Connection) end,
-        ["Disconnect"] = function() Connection:Disconnect() end,
-        ["Disable"] = function() ConnectionInfo["Enabled"] = false end,
-        ["Enable"] = function() ConnectionInfo["Enabled"] = true end,
-    }
-
-    getrenv()["table"].insert(Connections, ConnectionInfo)
-
-    Connection:Disconnect()
-    return Connections
-end)
-
-getgenv()["get_connections"] = getconnections
-getgenv()["GetConnections"] = getconnections
-
-local _isscriptable = clonefunction(isscriptable)
-local _setscriptable = clonefunction(setscriptable)
-local ScriptableCache = {}
-
+getgenv().fire_proximity_prompt = fireproximityprompt
+getgenv().FireProximityPrompt = fireproximityprompt
 --[[
-	Returns the value of a hidden property of `object`, which cannot be indexed normally.
-	If the property is hidden, the second return value will be `true`. Otherwise, it will be `false`.
-]]
-getgenv()["gethiddenproperty"] = newcclosure(function(Inst, Idx) 
-	assert(typeof(Inst) == "Instance", "invalid argument #1 to 'gethiddenproperty' [Instance expected]", 2);
-	local Was = _isscriptable(Inst, Idx);
-	_setscriptable(Inst, Idx, true)
+local security = {
+	'OpenVideosFolder', 'OpenScreenshotsFolder', 'GetRobuxBalance', 'PerformPurchase',
+	'PromptBundlePurchase', 'PromptNativePurchase', 'PromptProductPurchase', 'PromptPurchase',
+	'PromptThirdPartyPurchase', 'Publish', 'GetMessageId', 'OpenBrowserWindow', 'RequestInternal',
+	'ExecuteJavaScript', 'openvideosfolder', 'openscreenshotsfolder', 'getrobuxbalance',
+	'performpurchase', 'promptbundlepurchase', 'promptnativepurchase', 'promptproductpurchase',
+	'promptpurchase', 'promptthirdpartypurchase', 'publish', 'getmessageid', 'openbrowserwindow',
+	'requestinternal', 'executejavascript', 'openVideosFolder', 'openScreenshotsFolder',
+	'getRobuxBalance', 'performPurchase', 'promptBundlePurchase', 'promptNativePurchase',
+	'promptProductPurchase', 'promptPurchase', 'promptThirdPartyPurchase', 'publish',
+	'getMessageId', 'openBrowserWindow', 'requestInternal', 'executeJavaScript',
+	'ToggleRecording', 'TakeScreenshot', 'HttpRequestAsync', 'GetLast', 'SendCommand',
+	'GetAsync', 'GetAsyncFullUrl', 'RequestAsync', 'MakeRequest', 'OpenUrl'
+}
 
-	local Value = Inst[Idx]
-	_setscriptable(Inst, Idx, Was)
+local gmt = getrawmetatable(game)
+local old_index = gmt.__index
+local old_namecall = gmt.__namecall
+local _game = game
 
-	return Value, not Was
-end)
+setreadonly(gmt, false)
 
-getgenv()["get_hidden_property"] = gethiddenproperty
-getgenv()["GetHiddenProperty"] = gethiddenproperty
-
--- Sets the value of a hidden property of `object`, which cannot be set normally. Returns whether the property was hidden.
-getgenv()["sethiddenproperty"] = (function(Inst, Idx, Value) 
-	assert(typeof(Inst) == "Instance", "invalid argument #1 to 'sethiddenproperty' [Instance expected]", 2);
-	local Was = _isscriptable(Inst, Idx);
-	_setscriptable(Inst, Idx, true)
-
-	Inst[Idx] = Value
-
-	_setscriptable(Inst, Idx, Was)
-
-	return not Was
-end)
-
-getgenv()["set_hidden_property"] = sethiddenproperty
-getgenv()["SetHiddenProperty"] = sethiddenproperty
-
-getgenv()["isscriptable"] = newcclosure(function(Inst: Instance, Property: string)
-    local InstanceCache = ScriptableCache[Inst]
-    if InstanceCache then
-        local Value = InstanceCache[Property]
-        if Value ~= nil then
-            return Value
-        end
-    end
-    return _isscriptable(Inst, Property)
-end)
-
-getgenv()["is_scriptable"] = isscriptable
-getgenv()["IsScriptable"] = isscriptable
-
-getgenv()["setscriptable"] = newcclosure(function(Inst: Instance, Property: string, Scriptable: boolean)
-    local WasScriptable = _isscriptable(Inst, Property)
-    if ScriptableCache[Inst] == nil then
-        ScriptableCache[Inst] = {}
-    end
-    ScriptableCache[Inst][Property] = Scriptable
-    return WasScriptable
-end)
-
-getgenv()["set_scriptable"] = setscriptable
-getgenv()["SetScriptable"] = setscriptable
-
-local NewIndex; NewIndex = hookmetamethod(game, "__newindex", function(t, k, v)
-    if checkcaller() then
-        local Cache = ScriptableCache[t]
-        if Cache and Cache[k] ~= nil and _isscriptable(t, k) ~= Cache[k] then
-            _setscriptable(t, k, Cache[k])
-            local s, r = pcall(function()
-                NewIndex(t, k, v)
-            end)
-            _setscriptable(t, k, not Cache[k])
-            if not s then
-                error(r)
-            end
-            return
-        end
-    end
-    NewIndex(t, k, v)
-end)
-
-getgenv()["setrbxclipboard"] = setclipboard
-getgenv()["set_rbx_clipboard"] = setclipboard
-getgenv()["SetRbxClipboard"] = setclipboard
-
--- Compresses `data` using LZ4 compression.
-getgenv()["lz4compress"] = newcclosure(function(Data)
-    local Out, i, DataLen = {}, 1, #Data
-
-    while i <= DataLen do
-        local BestLen, BestDist = 0, 0
-
-        for Dist = 1, math.min(i - 1, 65535) do
-            local MatchStart, Len = i - Dist, 0
-
-            while i + Len <= DataLen and Data:sub(MatchStart + Len, MatchStart + Len) == Data:sub(i + Len, i + Len) do
-                Len += 1
-                if Len == 65535 then break end
-            end
-
-            if Len > BestLen then BestLen, BestDist = Len, Dist end
-        end
-
-        if BestLen >= 4 then
-            getrenv()["table"].insert(Out, getrenv()["string"].char(0) .. getrenv()["string"].pack(">I2I2", BestDist - 1, BestLen - 4))
-            i += BestLen
-        else
-            local LitStart = i
-
-            while i <= DataLen and (i - LitStart < 15 or i == DataLen) do i += 1 end
-            getrenv()["table"].insert(Out, getrenv()["string"].char(i - LitStart) .. Data:sub(LitStart, i - 1))
-        end
-    end
-    return getrenv()["table"].concat(Out)
-end)
-
-getgenv()["lz4_compress"] = lz4compress
-getgenv()["Lz4Compress"] = lz4compress
-
--- Decompresses `data` using LZ4 compression, with the decompressed size specified by `size`.
-getgenv()["lz4decompress"] = newcclosure(function(Data, Size)
-    local Out, i, DataLen = {}, 1, #Data
-
-    while i <= DataLen and #getrenv()["table"].concat(Out) < Size do
-        local Token = Data:byte(i)
-        i = i + 1
-
-        if Token == 0 then
-            local Dist, Len = getrenv()["string"].unpack(">I2I2", Data:sub(i, i + 3))
-
-            i = i + 4
-            Dist = Dist + 1
-            Len = Len + 4
-
-            local Start = #getrenv()["table"].concat(Out) - Dist + 1
-            local Match = getrenv()["table"].concat(Out):sub(Start, Start + Len - 1)
-
-            while #Match < Len do
-                Match = Match .. Match
-            end
-
-            getrenv()["table"].insert(Out, Match:sub(1, Len))
-        else
-            getrenv()["table"].insert(Out, Data:sub(i, i + Token - 1))
-            i = i + Token
-        end
-    end
-
-    return getrenv()["table"].concat(Out):sub(1, Size)
-end)
-
-getgenv()["lz4_decompress"] = lz4decompress
-getgenv()["Lz4Decompress"] = lz4decompress
-
-local function MessageBoxHandler(...)
-	warn("Disabled function \"messagebox\".")
+gmt.__index = function(self, i)
+	if self == _game and (i == 'HttpGet' or i == 'HttpGetAsync') then
+		return function(self, ...)
+			return _game:HttpGet(...)
+		end
+	elseif self == _game and i == 'GetObjects' then
+		return function(self, ...)
+			return _game:GetObjects(...)
+		end
+	elseif table.find(security, i) then
+		return false, "Disabled for security reasons." 
+	end
+	return old_index(self, i)
 end
 
-getgenv()["messagebox"] = newcclosure(MessageBoxHandler)
-getgenv()["message_box"] = newcclosure(MessageBoxHandler)
-getgenv()["MessageBox"] = newcclosure(MessageBoxHandler)
-
-local function QueueOnTeleportHandler(...)
-	warn("Disabled function \"queue_on_teleport\".")
+gmt.__namecall = function(self, ...)
+	if self == _game and (getnamecallmethod() == 'HttpGet' or getnamecallmethod() == 'HttpGetAsync') then
+		return httpget(...)
+	elseif self == _game and getnamecallmethod() == 'GetObjects' then
+		return GetObjects(...)
+	elseif table.find(security, getnamecallmethod()) then
+		return false, "Disabled for security reasons."
+	end
+	return old_namecall(self, ...)
 end
 
-getgenv()["queueonteleport"] = newcclosure(QueueOnTeleportHandler)
-getgenv()["queue_on_teleport"] = newcclosure(QueueOnTeleportHandler)
-getgenv()["QueueOnTeleport"] = newcclosure(QueueOnTeleportHandler)
+setreadonly(gmt, true)]]
 
-local CurrentFps, _Task = nil, nil
+local lz4 = {}
 
--- Sets the in-game FPS cap to `fps`. If `fps` is 0, the FPS cap is disabled.
-getgenv()["setfpscap"] = newcclosure(function(NewCap)
-    if _Task then
-        getrenv()["task"].cancel(_Task)
-        _Task = nil
-    end
+type Streamer = {
+	Offset: number,
+	Source: string,
+	Length: number,
+	IsFinished: boolean,
+	LastUnreadBytes: number,
 
-    if NewCap and NewCap > 0 and NewCap < 10000 then
-        CurrentFps = NewCap
-        local Interval = 1 / NewCap
+	read: (Streamer, len: number?, shiftOffset: boolean?) -> string,
+	seek: (Streamer, len: number) -> (),
+	append: (Streamer, newData: string) -> (),
+	toEnd: (Streamer) -> ()
+}
 
-        _Task = getrenv()["task"].spawn(function()
-            while true do
-                local Start = getrenv()["os"].clock()
-                RunService["Heartbeat"]:Wait()
-                while getrenv()["os"].clock() - Start < Interval do end
-            end
-        end)
-    else 
-        CurrentFps = nil
-    end
-end)
+type BlockData = {
+	[number]: {
+		Literal: string,
+		LiteralLength: number,
+		MatchOffset: number?,
+		MatchLength: number?
+	}
+}
 
-getgenv()["set_fps_cap"] = setfpscap
-getgenv()["SetFpsCap"] = setfpscap
+local function plainFind(str, pat)
+	return string.find(str, pat, 0, true)
+end
 
--- Returns the in-game FPS cap.
-getgenv()["getfpscap"] = newcclosure(function()
-	return getrenv()["workspace"]:GetRealPhysicsFPS()
-end)
+local function streamer(str): Streamer
+	local Stream = {}
+	Stream.Offset = 0
+	Stream.Source = str
+	Stream.Length = string.len(str)
+	Stream.IsFinished = false	
+	Stream.LastUnreadBytes = 0
 
-getgenv()["get_fps_cap"] = getfpscap
-getgenv()["GetFpsCap"] = getfpscap
+	function Stream.read(self: Streamer, len: number?, shift: boolean?): string
+		local len = len or 1
+		local shift = if shift ~= nil then shift else true
+		local dat = string.sub(self.Source, self.Offset + 1, self.Offset + len)
 
--- Returns a list of ModuleScripts that have been loaded. If `excludeCore` is true, CoreScript-related modules will not be included in the list.
-getgenv()["getloadedmodules"] = newcclosure(function()
-    local LoadedModules = {}
-    for _, v in pairs(getrenv()["game"]:GetDescendants()) do
-        if typeof(v) == "Instance" and v:IsA("ModuleScript") then getrenv()["table"].insert(LoadedModules, v) end
-    end
-    return LoadedModules
-end)
+		local dataLength = string.len(dat)
+		local unreadBytes = len - dataLength
 
-getgenv()["get_loaded_modules"] = getloadedmodules
-getgenv()["GetLoadedModules"] = getloadedmodules
-
--- Returns a list of scripts that are currently running.
-getgenv()["getrunningscripts"] = newcclosure(function()
-    local RunningScripts = {}
-    for _, v in ipairs(Players.LocalPlayer:GetDescendants()) do
-        if v:IsA("LocalScript") or v:IsA("ModuleScript") then
-            RunningScripts[#RunningScripts + 1] = v
-        end
-    end
-    return RunningScripts
-end)
-
-getgenv()["get_running_scripts"] = getrunningscripts
-getgenv()["GetRunningScripts"] = getrunningscripts
-
-getgenv()["getscripts"] = getrunningscripts
-getgenv()["get_scripts"] = getrunningscripts
-getgenv()["GetScripts"] = getrunningscripts
-
--- Returns a SHA384 hash of the script's bytecode. This is useful for detecting changes to a script's source code.
-getgenv()["getscripthash"] = newcclosure(function(Inst)
-    assert(typeof(Inst) == "Instance", "invalid argument #1 to 'getscripthash' (Instance expected, got " .. typeof(Inst) .. ") ", 2)
-	assert(Inst:IsA("LuaSourceContainer"), "invalid argument #1 to 'getscripthash' (LuaSourceContainer expected, got " .. Inst["ClassName"] .. ") ", 2)
-	return Inst:GetHash()
-end)
-
--- Returns the global environment of the given script. It can be used to access variables and functions that are not defined as local.
-getgenv()["getsenv"] = newcclosure(function(script)
-    assert(typeof(script) == "Instance", "invalid argument #1 to 'getsenv' [ModuleScript or LocalScript expected]", 2);
-	assert((script:IsA("LocalScript") or script:IsA("ModuleScript")), "invalid argument #1 to 'getsenv' [ModuleScript or LocalScript expected]", 2)
-	if (script:IsA("LocalScript") == true) then 
-		for _, v in getreg() do
-			if (type(v) == "function") then
-				if getfenv(v)["script"] then
-					if getfenv(v)["script"] == script then
-						return getfenv(v)
-					end
-				end
-			end
-		end
-	else
-		local Reg = getreg()
-		local Senv = {}
-
-		if #Reg == 0 then
-			return require(script)
+		if shift then
+			self:seek(len)
 		end
 
-		for _, v in next, Reg do
-			if type(v) == "function" and islclosure(v) then
-				local Fenv = getfenv(v)
-				local Raw = rawget(Fenv, "script")
-				if Raw and Raw == script then
-					for i, k in next, Fenv do
-						if i ~= "script" then
-							rawset(Senv, i, k)
+		self.LastUnreadBytes = unreadBytes
+		return dat
+	end
+
+	function Stream.seek(self: Streamer, len: number)
+		local len = len or 1
+
+		self.Offset = math.clamp(self.Offset + len, 0, self.Length)
+		self.IsFinished = self.Offset >= self.Length
+	end
+
+	function Stream.append(self: Streamer, newData: string)
+		-- adds new data to the end of a stream
+		self.Source ..= newData
+		self.Length = string.len(self.Source)
+		self:seek(0) --hacky but forces a recalculation of the isFinished flag
+	end
+
+	function Stream.toEnd(self: Streamer)
+		self:seek(self.Length)
+	end
+
+	return Stream
+end
+
+getgenv().lz4compress = newcclosure(function(str: string): string
+	local blocks: BlockData = {}
+	local iostream = streamer(str)
+
+	if iostream.Length > 12 then
+		local firstFour = iostream:read(4)
+
+		local processed = firstFour
+		local lit = firstFour
+		local match = ""
+		local LiteralPushValue = ""
+		local pushToLiteral = true
+
+		repeat
+			pushToLiteral = true
+			local nextByte = iostream:read()
+
+			if plainFind(processed, nextByte) then
+				local next3 = iostream:read(3, false)
+
+				if string.len(next3) < 3 then
+					--push bytes to literal block then break
+					LiteralPushValue = nextByte .. next3
+					iostream:seek(3)
+				else
+					match = nextByte .. next3
+
+					local matchPos = plainFind(processed, match)
+					if matchPos then
+						iostream:seek(3)
+						repeat
+							local nextMatchByte = iostream:read(1, false)
+							local newResult = match .. nextMatchByte
+
+							local repos = plainFind(processed, newResult) 
+							if repos then
+								match = newResult
+								matchPos = repos
+								iostream:seek(1)
+							end
+						until not plainFind(processed, newResult) or iostream.IsFinished
+
+						local matchLen = string.len(match)
+						local pushMatch = true
+
+						if iostream.Length - iostream.Offset <= 5 then
+							LiteralPushValue = match
+							pushMatch = false
+							--better safe here, dont bother pushing to match ever
 						end
+
+						if pushMatch then
+							pushToLiteral = false
+
+							-- gets the position from the end of processed, then slaps it onto processed
+							local realPosition = string.len(processed) - matchPos
+							processed = processed .. match
+
+							table.insert(blocks, {
+								Literal = lit,
+								LiteralLength = string.len(lit),
+								MatchOffset = realPosition + 1,
+								MatchLength = matchLen,
+							})
+							lit = ""
+						end
+					else
+						LiteralPushValue = nextByte
 					end
 				end
+			else
+				LiteralPushValue = nextByte
+			end
+
+			if pushToLiteral then
+				lit = lit .. LiteralPushValue
+				processed = processed .. nextByte
+			end
+		until iostream.IsFinished
+		table.insert(blocks, {
+			Literal = lit,
+			LiteralLength = string.len(lit)
+		})
+	else
+		local str = iostream.Source
+		blocks[1] = {
+			Literal = str,
+			LiteralLength = string.len(str)
+		}
+	end
+
+	-- generate the output chunk
+	-- %s is for adding header
+	local output = string.rep("\x00", 4)
+	local function write(char)
+		output = output .. char
+	end
+	-- begin working through chunks
+	for chunkNum, chunk in blocks do
+		local litLen = chunk.LiteralLength
+		local matLen = (chunk.MatchLength or 4) - 4
+
+		-- create token
+		local tokenLit = math.clamp(litLen, 0, 15)
+		local tokenMat = math.clamp(matLen, 0, 15)
+
+		local token = bit32.lshift(tokenLit, 4) + tokenMat
+		write(string.pack("<I1", token))
+
+		if litLen >= 15 then
+			litLen = litLen - 15
+			--begin packing extra bytes
+			repeat
+				local nextToken = math.clamp(litLen, 0, 0xFF)
+				write(string.pack("<I1", nextToken))
+				if nextToken == 0xFF then
+					litLen = litLen - 255
+				end
+			until nextToken < 0xFF
+		end
+
+		-- push raw lit data
+		write(chunk.Literal)
+
+		if chunkNum ~= #blocks then
+			-- push offset as u16
+			write(string.pack("<I2", chunk.MatchOffset))
+
+			-- pack extra match bytes
+			if matLen >= 15 then
+				matLen = matLen - 15
+
+				repeat
+					local nextToken = math.clamp(matLen, 0, 0xFF)
+					write(string.pack("<I1", nextToken))
+					if nextToken == 0xFF then
+						matLen = matLen - 255
+					end
+				until nextToken < 0xFF
 			end
 		end
-		return Senv
 	end
+	--append chunks
+	local compLen = string.len(output) - 4
+	local decompLen = iostream.Length
+
+	return string.pack("<I4", compLen) .. string.pack("<I4", decompLen) .. output
 end)
 
-local Drawings = {}
-local drawings = {}
-local camera = game.Workspace.CurrentCamera
-local drawingUI = Instance.new("ScreenGui")
-local coreGui = game:GetService("CoreGui")
-drawingUI.Name = "Drawing"
-drawingUI.IgnoreGuiInset = true
-drawingUI.DisplayOrder = 0x7fffffff
-drawingUI.Parent = coreGui
+getgenv().lz4decompress = newcclosure(function(lz4data: string): string
+	local inputStream = streamer(lz4data)
 
-local drawingIndex = 0
-local uiStrokes = table.create(0)
-local baseDrawingObj = setmetatable({
-	Visible = true,
-	ZIndex = 0,
-	Transparency = 1,
-	Color = Color3.new(),
-	Remove = function(self)
-		setmetatable(self, nil)
+	local compressedLen = string.unpack("<I4", inputStream:read(4))
+	local decompressedLen = string.unpack("<I4", inputStream:read(4))
+	local reserved = string.unpack("<I4", inputStream:read(4))
+
+	if compressedLen == 0 then
+		return inputStream:read(decompressedLen)
 	end
-}, {
-	__add = function(t1, t2)
-		local result = table.clone(t1)
 
-		for index, value in t2 do
-			result[index] = value
+	local outputStream = streamer("")
+
+	repeat
+		local token = string.byte(inputStream:read())
+		local litLen = bit32.rshift(token, 4)
+		local matLen = bit32.band(token, 15) + 4
+
+		if litLen >= 15 then
+			repeat
+				local nextByte = string.byte(inputStream:read())
+				litLen += nextByte
+			until nextByte ~= 0xFF
 		end
-		return result
-	end
-})
-local drawingFontsEnum = {
-	[0] = Font.fromEnum(Enum.Font.Roboto),
-	[1] = Font.fromEnum(Enum.Font.Legacy),
-	[2] = Font.fromEnum(Enum.Font.SourceSans),
-	[3] = Font.fromEnum(Enum.Font.RobotoMono),
-}
--- function
-local function getFontFromIndex(fontIndex: number): Font
-	return drawingFontsEnum[fontIndex]
+
+		local literal = inputStream:read(litLen)
+		outputStream:append(literal)
+		outputStream:toEnd()
+		if outputStream.Length < decompressedLen then
+			--match
+			local offset = string.unpack("<I2", inputStream:read(2))
+			if matLen >= 19 then
+				repeat
+					local nextByte = string.byte(inputStream:read())
+					matLen += nextByte
+				until nextByte ~= 0xFF
+			end
+
+			outputStream:seek(-offset)
+			local pos = outputStream.Offset
+			local match = outputStream:read(matLen)
+			local unreadBytes = outputStream.LastUnreadBytes
+			local extra
+			if unreadBytes then
+				repeat
+					outputStream.Offset = pos
+					extra = outputStream:read(unreadBytes)
+					unreadBytes = outputStream.LastUnreadBytes
+					match ..= extra
+				until unreadBytes <= 0
+			end
+
+			outputStream:append(match)
+			outputStream:toEnd()
+		end
+
+	until outputStream.Length >= decompressedLen
+
+	return outputStream.Source
+end)
+
+getgenv().lz4 = lz4
+
+-- Crypt library
+local b64 = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/"
+
+getgenv().getc = function(str)
+    local sum = 0
+    for _, code in utf8.codes(str) do
+        sum = sum + code
+    end
+    return sum
 end
 
-local function convertTransparency(transparency: number): number
-	return math.clamp(1 - transparency, 0, 1)
+getgenv().str2hexa = function(a)
+    return string.gsub(
+        a,
+        ".",
+        function(b)
+            return string.format("%02x", string.byte(b))
+        end
+    )
 end
--- main
+
+getgenv().num2s = function(c, d)
+    local a = ""
+    for e = 1, d do
+        local f = c % 256
+        a = string.char(f) .. a
+        c = (c - f) / 256
+    end
+    return a
+end
+
+getgenv().s232num = function(a, e)
+    local d = 0
+    for g = e, e + 3 do
+        d = d * 256 + string.byte(a, g)
+    end
+    return d
+end
+
+getgenv().preproc = function(h, i)
+    local j = 64 - (i + 9) % 64
+    i = num2s(8 * i, 8)
+    h = h .. "\128" .. string.rep("\0", j) .. i
+    assert(#h % 64 == 0)
+    return h
+end
+
+getgenv().k = function(h, e, l)
+    local m = {}
+    local n = {
+        0x428a2f98,
+        0x71374491,
+        0xb5c0fbcf,
+        0xe9b5dba5,
+        0x3956c25b,
+        0x59f111f1,
+        0x923f82a4,
+        0xab1c5ed5,
+        0xd807aa98,
+        0x12835b01,
+        0x243185be,
+        0x550c7dc3,
+        0x72be5d74,
+        0x80deb1fe,
+        0x9bdc06a7,
+        0xc19bf174,
+        0xe49b69c1,
+        0xefbe4786,
+        0x0fc19dc6,
+        0x240ca1cc,
+        0x2de92c6f,
+        0x4a7484aa,
+        0x5cb0a9dc,
+        0x76f988da,
+        0x983e5152,
+        0xa831c66d,
+        0xb00327c8,
+        0xbf597fc7,
+        0xc6e00bf3,
+        0xd5a79147,
+        0x06ca6351,
+        0x14292967,
+        0x27b70a85,
+        0x2e1b2138,
+        0x4d2c6dfc,
+        0x53380d13,
+        0x650a7354,
+        0x766a0abb,
+        0x81c2c92e,
+        0x92722c85,
+        0xa2bfe8a1,
+        0xa81a664b,
+        0xc24b8b70,
+        0xc76c51a3,
+        0xd192e819,
+        0xd6990624,
+        0xf40e3585,
+        0x106aa070,
+        0x19a4c116,
+        0x1e376c08,
+        0x2748774c,
+        0x34b0bcb5,
+        0x391c0cb3,
+        0x4ed8aa4a,
+        0x5b9cca4f,
+        0x682e6ff3,
+        0x748f82ee,
+        0x78a5636f,
+        0x84c87814,
+        0x8cc70208,
+        0x90befffa,
+        0xa4506ceb,
+        0xbef9a3f7,
+        0xc67178f2
+    }
+    for g = 1, 16 do
+        m[g] = s232num(h, e + (g - 1) * 4)
+    end
+    for g = 17, 64 do
+        local o = m[g - 15]
+        local p = bit32.bxor(bit32.rrotate(o, 7), bit32.rrotate(o, 18), bit32.rshift(o, 3))
+        o = m[g - 2]
+        local q = bit32.bxor(bit32.rrotate(o, 17), bit32.rrotate(o, 19), bit32.rshift(o, 10))
+        m[g] = (m[g - 16] + p + m[g - 7] + q) % 2 ^ 32
+    end
+    local r, s, b, t, u, v, w, x = l[1], l[2], l[3], l[4], l[5], l[6], l[7], l[8]
+    for e = 1, 64 do
+        local p = bit32.bxor(bit32.rrotate(r, 2), bit32.rrotate(r, 13), bit32.rrotate(r, 22))
+        local y = bit32.bxor(bit32.band(r, s), bit32.band(r, b), bit32.band(s, b))
+        local z = (p + y) % 2 ^ 32
+        local q = bit32.bxor(bit32.rrotate(u, 6), bit32.rrotate(u, 11), bit32.rrotate(u, 25))
+        local A = bit32.bxor(bit32.band(u, v), bit32.band(bit32.bnot(u), w))
+        local B = (x + q + A + n[e] + m[e]) % 2 ^ 32
+        x = w
+        w = v
+        v = u
+        u = (t + B) % 2 ^ 32
+        t = b
+        b = s
+        s = r
+        r = (B + z) % 2 ^ 32
+    end
+    l[1] = (l[1] + r) % 2 ^ 32
+    l[2] = (l[2] + s) % 2 ^ 32
+    l[3] = (l[3] + b) % 2 ^ 32
+    l[4] = (l[4] + t) % 2 ^ 32
+    l[5] = (l[5] + u) % 2 ^ 32
+    l[6] = (l[6] + v) % 2 ^ 32
+    l[7] = (l[7] + w) % 2 ^ 32
+    l[8] = (l[8] + x) % 2 ^ 32
+end
+
+getgenv().crypt = {
+    base64encode = function(data)
+        return (data:gsub('.', function(x) 
+			local r,b='',x:byte()
+			for i=8,1,-1 do r=r..(b%2^i-b%2^(i-1)>0 and '1' or '0') end
+			return r
+		end)..'0000'):gsub('%d%d%d?%d?%d?%d?', function(x)
+			if (#x < 6) then return '' end
+			local c=0
+			for i=1,6 do c=c+(x:sub(i,i)=='1' and 2^(6-i) or 0) end
+			return b64:sub(c+1,c+1)
+		end)..({'','==','='})[#data%3+1]
+    end,
+    base64decode = function(data)
+        data = data:gsub('[^'..b64..'=]', '')
+		return (data:gsub('.', function(x)
+			if (x == '=') then return '' end
+			local r,f='',b64:find(x)-1
+			for i=6,1,-1 do r=r..(f%2^i-f%2^(i-1)>0 and '1' or '0') end
+			return r
+		end):gsub('%d%d%d?%d?%d?%d?%d?%d?', function(x)
+			if (#x ~= 8) then return '' end
+			local c=0
+			for i=1,8 do c=c+(x:sub(i,i)=='1' and 2^(8-i) or 0) end
+			return string.char(c)
+		end)) 
+    end,
+    base64_decode = base64decode,
+    base64_encode = base64encode,
+    base64 = {
+     encode = base64encode,
+     decode = base64decode
+    },
+    encrypt = function(data, key, iv, mode)
+        assert(type(data) == "string", "Data must be a string")
+		assert(type(key) == "string", "Key must be a string")
+
+		mode = mode or "CBC"
+		iv = iv or crypt.generatebytes(16)
+
+		local byteChange = (getc(mode) + getc(iv) + getc(key)) % 256
+		local res = {}
+
+		for i = 1, #data do
+			local byte = (string.byte(data, i) + byteChange) % 256
+			table.insert(res, string.char(byte))
+		end
+
+		local encrypted = table.concat(res)
+		return crypt.base64encode(encrypted), iv
+    end,
+    decrypt = function(data, key, iv, mode)
+        assert(type(data) == "string", "Data must be a string")
+		assert(type(key) == "string", "Key must be a string")
+		assert(type(iv) == "string", "IV must be a string")
+
+		mode = mode or "CBC"
+
+		local decodedData = crypt.base64decode(data)
+		local byteChange = (getc(mode) + getc(iv) + getc(key)) % 256
+		local res = {}
+
+		for i = 1, #decodedData do
+			local byte = (string.byte(decodedData, i) - byteChange) % 256
+			table.insert(res, string.char(byte))
+		end
+
+		return table.concat(res)
+    end,
+    generatebytes = function(size)
+        local bytes = table.create(size)
+
+		for i = 1, size do
+			bytes[i] = string.char(math.random(0, 255))
+		end
+
+		return crypt.base64encode(table.concat(bytes))
+    end,
+    generatekey = function()
+        return crypt.generatebytes(32)
+    end,
+    hash = function(h)
+        h = preproc(h, #h)
+        local l = {0x6a09e667, 0xbb67ae85, 0x3c6ef372, 0xa54ff53a, 0x510e527f, 0x9b05688c, 0x1f83d9ab, 0x5be0cd19}
+        for e = 1, #h, 64 do
+            k(h, e, l)
+        end
+        return str2hexa(
+            num2s(l[1], 4) ..
+                num2s(l[2], 4) ..
+                    num2s(l[3], 4) .. num2s(l[4], 4) .. num2s(l[5], 4) .. num2s(l[6], 4) .. num2s(l[7], 4) .. num2s(l[8], 4)
+        )
+    end
+}
+
 local DrawingLib = {}
-DrawingLib.Fonts = {
-	["UI"] = 0,
-	["System"] = 1,
-	["Flex"] = 2,
-	["Monospace"] = 3
-}
 
-function DrawingLib.new(drawingType)
-	drawingIndex += 1
-if drawingType == "Line" then
-    local lineObj = {
-        From = Vector2.zero,
-        To = Vector2.zero,
-        Thickness = 1
-    }
+local Camera = game:GetService("Workspace"):FindFirstChild("Camera")
+local RunService = game:GetService("RunService")
+local CoreGui = (RunService:IsStudio() and game:GetService("Players")["LocalPlayer"]:WaitForChild("PlayerGui") or game:GetService("CoreGui"))
 
-    for key, value in pairs(baseDrawingObj) do
-        lineObj[key] = value
-    end
+local BaseDrawingProperties = setmetatable({
+	Visible = true,
+	Color = Color3.new(),
+	Transparency = 0,
+	Position, Vector2.new(),
+	Remove = newcclosure(function()
+	end)
+}, {
+	__add = newcclosure(function(tbl1, tbl2)
+		local new = {}
+		for i, v in next, tbl1 do
+			new[i] = v
+		end
+		for i, v in next, tbl2 do
+			new[i] = v
+		end
+		return new
+	end)
+})
 
-    local lineFrame = Instance.new("Frame")
-    lineFrame.Name = drawingIndex
-    lineFrame.AnchorPoint = Vector2.one * 0.5
-    lineFrame.BorderSizePixel = 0
+local DrawingUI = nil;
 
-    lineFrame.BackgroundColor3 = lineObj.Color
-    lineFrame.Visible = lineObj.Visible
-    lineFrame.ZIndex = lineObj.ZIndex
-    lineFrame.BackgroundTransparency = convertTransparency(lineObj.Transparency)
-    lineFrame.Size = UDim2.new()
+DrawingLib.new = newcclosure(function(Type)
+	if DrawingUI == nil then
+		DrawingUI = Instance.new("ScreenGui");
+		DrawingUI.Parent = CoreGui;
+		DrawingUI.Name = "DrawingLib"
+		DrawingUI.DisplayOrder = 1999999999
+		DrawingUI.IgnoreGuiInset = true
+	end
 
-    lineFrame.Parent = drawingUI
-    local bs = table.create(0) -- Cache table
-    table.insert(drawings, bs)
+	if (Type == "Line") then
+		local LineProperties = ({
+			To = Vector2.new(),
+			From = Vector2.new(),
+			Thickness = 1,
+		} + BaseDrawingProperties)
 
-    local function updateLine()
-        local direction = lineObj.To - lineObj.From
-        local center = (lineObj.To + lineObj.From) / 2
-        local distance = direction.Magnitude
-        local theta = math.deg(math.atan2(direction.Y, direction.X))
+		local LineFrame = Instance.new("Frame");
+		LineFrame.AnchorPoint = Vector2.new(0.5, 0.5);
+		LineFrame.BorderSizePixel = 0
 
-        lineFrame.Position = UDim2.fromOffset(center.X, center.Y)
-        lineFrame.Rotation = theta
-        lineFrame.Size = UDim2.fromOffset(distance, lineObj.Thickness)
-    end
+		LineFrame.BackgroundColor3 = LineProperties.Color
+		LineFrame.Visible = LineProperties.Visible
+		LineFrame.BackgroundTransparency =  LineProperties.Transparency
+		LineFrame.ZIndex=3000
 
-    return setmetatable(bs, {
-        __newindex = function(_, index, value)
-            if lineObj[index] == nil then return end
+		LineFrame.Parent = DrawingUI
 
-            lineObj[index] = value
-            if index == "From" or index == "To" or index == "Thickness" then
-                updateLine()
-            elseif index == "Visible" then
-                lineFrame.Visible = value
-            elseif index == "ZIndex" then
-                lineFrame.ZIndex = value
-            elseif index == "Transparency" then
-                lineFrame.BackgroundTransparency = convertTransparency(value)
-            elseif index == "Color" then
-                lineFrame.BackgroundColor3 = value
-            end
-        end,
-        __index = function(self, index)
-            if index == "Remove" or index == "Destroy" then
-                return function()
-                    lineFrame:Destroy()
-                    lineObj.Remove(self)
-                    for k in pairs(bs) do
-                        bs[k] = nil
-                    end
-                end
-            end
-            return lineObj[index]
-        end
-    })
-	elseif drawingType == "Text" then
-    local textObj = {
-        Text = "",
-        Font = DrawingLib.Fonts.UI,
-        Size = 0,
-        Position = Vector2.zero,
-        Center = false,
-        Outline = false,
-        OutlineColor = Color3.new()
-    }
+		return setmetatable({}, {
+			__newindex = newcclosure(function(self, Property, Value)
+				if (Property == "To") then
+					local To = Value
+					local Direction = (To - LineProperties.From);
+					local Center = (To + LineProperties.From) / 2
+					local Distance = Direction.Magnitude
+					local Theta = math.atan2(Direction.Y, Direction.X);
 
-    for key, value in pairs(baseDrawingObj) do
-        textObj[key] = value
-    end
+					LineFrame.Position = UDim2.fromOffset(Center.X, Center.Y);
+					LineFrame.Rotation = math.deg(Theta);
+					LineFrame.Size = UDim2.fromOffset(Distance, LineProperties.Thickness);
 
-    local textLabel = Instance.new("TextLabel")
-    local uiStroke = Instance.new("UIStroke")
-    
-    textLabel.Name = drawingIndex
-    textLabel.AnchorPoint = Vector2.one * 0.5
-    textLabel.BorderSizePixel = 0
-    textLabel.BackgroundTransparency = 1
+					LineProperties.To = To
+				end
+				if (Property == "From") then
+					local From = Value
+					local Direction = (LineProperties.To - From);
+					local Center = (LineProperties.To + From) / 2
+					local Distance = Direction.Magnitude
+					local Theta = math.atan2(Direction.Y, Direction.X);
 
-    textLabel.Visible = textObj.Visible
-    textLabel.TextColor3 = textObj.Color
-    textLabel.TextTransparency = convertTransparency(textObj.Transparency)
-    textLabel.ZIndex = textObj.ZIndex
-    textLabel.FontFace = getFontFromIndex(textObj.Font)
-    textLabel.TextSize = textObj.Size
+					LineFrame.Position = UDim2.fromOffset(Center.X, Center.Y);
+					LineFrame.Rotation = math.deg(Theta);
+					LineFrame.Size = UDim2.fromOffset(Distance, LineProperties.Thickness);
 
-    -- Function to update textLabel size and position
-    local function updateTextLabel()
-        local textBounds = textLabel.TextBounds
-        local offset = textBounds / 2
-        textLabel.Size = UDim2.fromOffset(textBounds.X, textBounds.Y)
-        textLabel.Position = UDim2.fromOffset(textObj.Position.X + (textObj.Center and 0 or offset.X), textObj.Position.Y + offset.Y)
-    end
 
-    -- Connect to TextBounds property change
-    textLabel:GetPropertyChangedSignal("TextBounds"):Connect(updateTextLabel)
+					LineProperties.From = From
+				end
+				if (Property == "Visible") then
+					LineFrame.Visible = Value
+					LineProperties.Visible = Value
+				end
+				if (Property == "Thickness") then
+					Value = Value < 1 and 1 or Value
 
-    uiStroke.Thickness = 1
-    uiStroke.Enabled = textObj.Outline
-    uiStroke.Color = textObj.OutlineColor
+					local Direction = (LineProperties.To - LineProperties.From);
+					local Distance = Direction.Magnitude
 
-    textLabel.Parent = drawingUI
-    uiStroke.Parent = textLabel
-    
-    local bs = table.create(0) -- Cache table
-    table.insert(drawings, bs)
+					LineFrame.Size = UDim2.fromOffset(Distance, Value);
 
-    return setmetatable(bs, {
-        __newindex = function(_, index, value)
-            if textObj[index] == nil then return end
+					LineProperties.Thickness = Value
+				end
+				if (Property == "Transparency") then
+					LineFrame.BackgroundTransparency = 1 - Value
+					LineProperties.Transparency = 1 - Value
+				end
+				if (Property == "Color") then
+					LineFrame.BackgroundColor3 = Value
+					LineProperties.Color = Value 
+				end
+				if (Property == "ZIndex") then
+					LineFrame.ZIndex = Value
+				end
+			end),
+			__index = newcclosure(function(self, Property)
+				if (string.lower(tostring(Property)) == "remove") then
+					return (function()
+						LineFrame:Destroy();
+					end)
+				end
+				if Property == "Destroy" then
+					return (function()
+						LineFrame:Destroy();
+					end)
+				end
+				return LineProperties[Property]
+			end)
+		})
+	end
 
-            textObj[index] = value
-            if index == "Text" then
-                textLabel.Text = value
-            elseif index == "Font" then
-                textLabel.FontFace = getFontFromIndex(math.clamp(value, 0, 3))
-            elseif index == "Size" then
-                textLabel.TextSize = value
-            elseif index == "Position" then
-                updateTextLabel()
-            elseif index == "Center" then
-                local position = value and (camera.ViewportSize / 2) or textObj.Position
-                textLabel.Position = UDim2.fromOffset(position.X, position.Y)
-            elseif index == "Outline" then
-                uiStroke.Enabled = value
-            elseif index == "OutlineColor" then
-                uiStroke.Color = value
-            elseif index == "Visible" then
-                textLabel.Visible = value
-            elseif index == "ZIndex" then
-                textLabel.ZIndex = value
-            elseif index == "Transparency" then
-                local transparency = convertTransparency(value)
-                textLabel.TextTransparency = transparency
-                uiStroke.Transparency = transparency
-            elseif index == "Color" then
-                textLabel.TextColor3 = value
-            end
-        end,
-        __index = function(self, index)
-            if index == "Remove" or index == "Destroy" then
-                return function()
-                    textLabel:Destroy()
-                    textObj.Remove(self)
-                    for k in pairs(bs) do
-                        bs[k] = nil
-                    end
-                end
-            elseif index == "TextBounds" then
-                return textLabel.TextBounds
-            end
-            return textObj[index]
-        end
-    })
-elseif drawingType == "Circle" then
-    local circleObj = {
-        Radius = 150,
-        Position = Vector2.zero,
-        Thickness = 0.7,
-        Filled = false
-    }
+	if (Type == "Circle") then
+		local CircleProperties = ({
+			Radius = 150,
+			Filled = false,
+			Thickness = 0,
+			Position = Vector2.new()
+		} + BaseDrawingProperties)
 
-    for key, value in pairs(baseDrawingObj) do
-        circleObj[key] = value
-    end
+		local CircleFrame = Instance.new("Frame");
 
-    local circleFrame = Instance.new("Frame")
-    local uiCorner = Instance.new("UICorner")
-    local uiStroke = Instance.new("UIStroke")
-    
-    circleFrame.Name = drawingIndex
-    circleFrame.AnchorPoint = Vector2.one * 0.5
-    circleFrame.BorderSizePixel = 0
-    circleFrame.BackgroundTransparency = circleObj.Filled and convertTransparency(circleObj.Transparency) or 1
-    circleFrame.BackgroundColor3 = circleObj.Color
-    circleFrame.Visible = circleObj.Visible
-    circleFrame.ZIndex = circleObj.ZIndex
-    circleFrame.Size = UDim2.fromOffset(circleObj.Radius * 2, circleObj.Radius * 2)
+		CircleFrame.AnchorPoint = Vector2.new(0.5, 0.5);
+		CircleFrame.BorderSizePixel = 0
 
-    uiCorner.CornerRadius = UDim.new(1, 0)
-    uiStroke.Thickness = circleObj.Thickness
-    uiStroke.Enabled = not circleObj.Filled
-    uiStroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+		CircleFrame.BackgroundColor3 = CircleProperties.Color
+		CircleFrame.Visible = CircleProperties.Visible
+		CircleFrame.BackgroundTransparency = CircleProperties.Transparency
 
-    circleFrame.Parent = drawingUI
-    uiCorner.Parent = circleFrame
-    uiStroke.Parent = circleFrame
+		local Corner = Instance.new("UICorner", CircleFrame);
+		Corner.CornerRadius = UDim.new(1, 0);
+		CircleFrame.Size = UDim2.new(0, CircleProperties.Radius, 0, CircleProperties.Radius);
 
-    local bs = table.create(0)
-    table.insert(drawings, bs)
+		CircleFrame.Parent = DrawingUI
 
-    return setmetatable(bs, {
-        __newindex = function(_, index, value)
-            if circleObj[index] == nil then return end
+		local Stroke = Instance.new("UIStroke", CircleFrame)
+		Stroke.Thickness = CircleProperties.Thickness
+		Stroke.Enabled = true
+		Stroke.Transparency = 0
 
-            circleObj[index] = value
-            if index == "Radius" then
-                circleFrame.Size = UDim2.fromOffset(value * 2, value * 2)
-            elseif index == "Position" then
-                circleFrame.Position = UDim2.fromOffset(value.X, value.Y)
-            elseif index == "Thickness" then
-                uiStroke.Thickness = math.clamp(value, 0.6, math.huge)
-            elseif index == "Filled" then
-                circleFrame.BackgroundTransparency = value and convertTransparency(circleObj.Transparency) or 1
-                uiStroke.Enabled = not value
-            elseif index == "Visible" then
-                circleFrame.Visible = value
-            elseif index == "ZIndex" then
-                circleFrame.ZIndex = value
-            elseif index == "Transparency" then
-                local transparency = convertTransparency(value)
-                circleFrame.BackgroundTransparency = circleObj.Filled and transparency or 1
-                uiStroke.Transparency = transparency
-            elseif index == "Color" then
-                circleFrame.BackgroundColor3 = value
-                uiStroke.Color = value
-            end
-        end,
-        __index = function(self, index)
-            if index == "Remove" or index == "Destroy" then
-                return function()
-                    circleFrame:Destroy()
-                    circleObj.Remove(self)
-                    for k in pairs(bs) do
-                        bs[k] = nil
-                    end
-                end
-            end
-            return circleObj[index]
-        end
-    })
+		return setmetatable({}, {
+			__newindex = newcclosure(function(self, Property, Value)
+				if (Property == "Radius") then
+					CircleFrame.Size = UDim2.new(0,Value*2,0,Value*2)
+					CircleProperties.Radius = Value
+				end
+				if (Property == "Position") then
+					CircleFrame.Position = UDim2.new(0, Value.X, 0, Value.Y);
+					CircleProperties.Position = Value
+				end
+				if (Property == "Filled") then
+					if Value == true then	
+						CircleFrame.BackgroundTransparency = CircleProperties.Transparency
+						Stroke.Enabled = not Value
+						CircleProperties.Filled = Value
+					else
+						CircleFrame.BackgroundTransparency = (Value == true and 0 or 1)
+						Stroke.Enabled = not Value
+						CircleProperties.Filled = Value
+					end
+				end
+				if (Property == "Color") then
+					CircleFrame.BackgroundColor3 = Value
+					Stroke.Color = Value
+					CircleProperties.Color = Value
+				end
+				if (Property == "Thickness") then
+					Stroke.Thickness = Value
+					CircleProperties.Thickness = Value
+				end
+				if (Property == "Transparency") then
+					CircleFrame.BackgroundTransparency = Value
+					CircleProperties.Transparency = Value
+				end
+				if (Property == "Visible") then
+					CircleFrame.Visible = Value
+					CircleProperties.Visible = Value
+				end
+				if (Property == "ZIndex") then
+					CircleFrame.ZIndex = Value
+				end
+			end),
+			__index = newcclosure(function(self, Property)
+				if (string.lower(tostring(Property)) == "remove") then
+					return (function()
+						CircleFrame:Destroy();
+					end)
+				end
+				if Property ==  "Destroy" then
+					return (function()
+						CircleFrame:Destroy();
+					end)
+				end
+				return CircleProperties[Property]
+			end)
+		})
+	end
 
-elseif drawingType == "Square" then
-    local squareObj = {
-        Size = Vector2.zero,
-        Position = Vector2.zero,
-        Thickness = 0.7,
-        Filled = false
-    }
+	if (Type == "Text") then
+		local TextProperties = ({
+			Text = "",
+			Center = false,
+			Outline = false,
+			OutlineColor = Color3.new(),
+			Position = Vector2.new(),
+			TextBounds = Vector2.new(),
+		} + BaseDrawingProperties)
 
-    for key, value in pairs(baseDrawingObj) do
-        squareObj[key] = value
-    end
+		local TextLabel = Instance.new("TextLabel");
+		TextLabel.AnchorPoint = Vector2.new(0.5,0.5)
+		TextLabel.BorderSizePixel = 0
+		TextLabel.Font = Enum.Font.SourceSans
+		TextLabel.TextSize = 14
+		TextLabel.TextXAlignment = Enum.TextXAlignment.Left or Enum.TextXAlignment.Right
+		TextLabel.TextYAlignment = Enum.TextYAlignment.Top
 
-    local squareFrame = Instance.new("Frame")
-    local uiStroke = Instance.new("UIStroke")
+		TextLabel.TextColor3 = TextProperties.Color
+		TextLabel.Visible = true
+		TextLabel.BackgroundTransparency = 1
+		TextLabel.TextTransparency = 1 - TextProperties.Transparency
 
-    squareFrame.Name = drawingIndex
-    squareFrame.BorderSizePixel = 0
-    squareFrame.BackgroundTransparency = squareObj.Filled and convertTransparency(squareObj.Transparency) or 1
-    squareFrame.BackgroundColor3 = squareObj.Color
-    squareFrame.Visible = squareObj.Visible
-    squareFrame.ZIndex = squareObj.ZIndex
-    squareFrame.Size = UDim2.fromOffset(squareObj.Size.X, squareObj.Size.Y)
+		local Stroke = Instance.new("UIStroke", TextLabel)
+		Stroke.Thickness = 0
+		Stroke.Enabled = false
+		Stroke.Color = TextProperties.OutlineColor
+		TextLabel.Parent = DrawingUI
 
-    uiStroke.Thickness = squareObj.Thickness
-    uiStroke.Enabled = not squareObj.Filled
-    uiStroke.LineJoinMode = Enum.LineJoinMode.Miter
+		return setmetatable({}, {
+			__newindex = newcclosure(function(self, Property, Value)
+				if (Property == "Text") then
+					TextLabel.Text = Value
+					TextProperties.Text = Value
+				end
+				if (Property == "Position") then
+					TextLabel.Position = UDim2.fromOffset(Value.X, Value.Y);
+					TextProperties.Position = Vector2.new(Value.X, Value.Y);
+				end
+				if (Property == "Size") then
+					TextLabel.TextSize = Value
+					TextProperties.TextSize = Value
+				end
+				if (Property == "Color") then
+					TextLabel.TextColor3 = Value
+					--	Stroke.Color = Value
+					TextProperties.Color = Value
+				end
+				if (Property == "Transparency") then
+					TextLabel.TextTransparency = 1 - Value
+					Stroke.Transparency = 1 - Value
+					TextProperties.Transparency = 1 - Value
+				end
+				if (Property == "OutlineOpacity") then
+					TextLabel.TextStrokeTransparency = Value
+					--Stroke.Transparency = Value
+				end
+				if (Property == "OutlineColor") then
+					Stroke.Color = Value
+					TextProperties.OutlineColor = Value
+				end
+				if (Property == "Visible") then
+					TextLabel.Visible = Value
+					TextProperties.Visible = Value
+				end
+				if (Property == "Outline") then
+					if Value == true then
+						Stroke.Thickness = 1
+						Stroke.Enabled = Value
+					else
+						Stroke.Thickness = 0
+						Stroke.Enabled = Value
+					end
+				end
+				if (Property == "TextBounds") then
+					TextLabel.TextBounds = Vector2.new(TextProperties.Position , Value);
+				end
+				if (Property == "Center") then
+					if Value == true then
+						TextLabel.TextXAlignment = Enum.TextXAlignment.Center;
+						TextLabel.TextYAlignment = Enum.TextYAlignment.Center;
+						TextProperties.Center = Enum.TextYAlignment.Center;
+					else
+						TextProperties.Center = Value
+					end
+				end
+				if (Property == "ZIndex") then
+					TextLabel.ZIndex = Value
+				end
+			end),
+			__index = newcclosure(function(self, Property)
+				if (string.lower(tostring(Property)) == "remove") then
+					return (function()
+						TextLabel:Destroy();
+					end)
+				end
+				if Property == "Destroy" then
+					return (function()
+						TextLabel:Destroy();
+					end)
+				end
+				return TextProperties[Property]
+			end)
+		})
+	end
 
-    squareFrame.Parent = drawingUI
-    uiStroke.Parent = squareFrame
+	if (Type == "Square") then
+		local SquareProperties = ({
+			Thickness = 1,
+			Size = Vector2.new(),
+			Position = Vector2.new(),
+			Filled = false,
+		} + BaseDrawingProperties);
+		local SquareFrame = Instance.new("Frame");
 
-    local bs = table.create(0)
-    table.insert(drawings, bs)
+		--SquareFrame.AnchorPoint = Vector2.new(0.5, 0.5);
+		SquareFrame.BorderSizePixel = 0
 
-    return setmetatable(bs, {
-        __newindex = function(_, index, value)
-            if squareObj[index] == nil then return end
+		SquareFrame.Visible = SquareProperties.Visible
+		SquareFrame.Parent = DrawingUI
 
-            squareObj[index] = value
-            if index == "Size" then
-                squareFrame.Size = UDim2.fromOffset(value.X, value.Y)
-            elseif index == "Position" then
-                squareFrame.Position = UDim2.fromOffset(value.X, value.Y)
-            elseif index == "Thickness" then
-                uiStroke.Thickness = math.clamp(value, 0.6, math.huge)
-            elseif index == "Filled" then
-                squareFrame.BackgroundTransparency = value and convertTransparency(squareObj.Transparency) or 1
-                uiStroke.Enabled = not value
-            elseif index == "Visible" then
-                squareFrame.Visible = value
-            elseif index == "ZIndex" then
-                squareFrame.ZIndex = value
-            elseif index == "Transparency" then
-                local transparency = convertTransparency(value)
-                squareFrame.BackgroundTransparency = squareObj.Filled and transparency or 1
-                uiStroke.Transparency = transparency
-            elseif index == "Color" then
-                squareFrame.BackgroundColor3 = value
-                uiStroke.Color = value
-            end
-        end,
-        __index = function(self, index)
-            if index == "Remove" or index == "Destroy" then
-                return function()
-                    squareFrame:Destroy()
-                    squareObj.Remove(self)
-                    for k in pairs(bs) do
-                        bs[k] = nil
-                    end
-                end
-            end
-            return squareObj[index]
-        end
-    })
-	elseif drawingType == "Image" then
-    local imageObj = {
-        Data = "",
-        DataURL = "rbxassetid://0",
-        Size = Vector2.zero,
-        Position = Vector2.zero
-    }
+		local Stroke = Instance.new("UIStroke", SquareFrame)
+		Stroke.Thickness = 2
+		Stroke.Enabled = true
+		SquareFrame.BackgroundTransparency = 0
+		Stroke.Transparency = 0
 
-    for key, value in pairs(baseDrawingObj) do
-        imageObj[key] = value
-    end
+		return setmetatable({}, {
+			__newindex = newcclosure(function(self, Property, Value)
+				if (Property == "Position") then
+					SquareFrame.Position = UDim2.fromOffset(Value.X, Value.Y);
+					SquareProperties.Position = Value
+				end
+				if (Property == "Size") then
+					SquareFrame.Size = UDim2.new(0, Value.X, 0, Value.Y);
+					SquareProperties.Size = Value
+				end
+				if (Property == "Thickness") then
+					Stroke.Thickness = Value
+					SquareProperties.Thickness = Value
+				end
+				if (Property == "Color") then
+					SquareFrame.BackgroundColor3 = Value
+					Stroke.Color = Value
+					SquareProperties.Color = Value
+				end
+				if (Property == "Transparency") then
+					--SquareFrame.BackgroundTransparency = Value
+					--	Stroke.Transparency = Value
+					SquareProperties.Transparency = Value
+				end
+				if (Property == "Visible") then
+					SquareFrame.Visible = Value
+					SquareProperties.Visible = Value
+				end
+				if (Property == "Filled") then -- requires beta
+					if Value == true then	
+						SquareFrame.BackgroundTransparency = SquareProperties.Transparency
+						Stroke.Transparency = 1
+						Stroke.Enabled = not Value
+						SquareProperties.Filled = Value
+					else
+						SquareFrame.BackgroundTransparency = (Value == true and 0 or 1)
+						Stroke.Enabled = not Value
+						SquareProperties.Filled = Value
+					end
+				end
+			end),
+			__index = newcclosure(function(self, Property)
+				if (string.lower(tostring(Property)) == "remove") then
+					return (function()
+						SquareFrame:Destroy();
+					end)
+				end
+				if Property == "Destroy" then				
+					return (function()
+						SquareFrame:Destroy();
+					end)
+				end
+				return SquareProperties[Property]
+			end)
+		})
+	end
 
-    local imageFrame = Instance.new("ImageLabel")
-    imageFrame.Name = drawingIndex
-    imageFrame.BorderSizePixel = 0
-    imageFrame.ScaleType = Enum.ScaleType.Stretch
-    imageFrame.BackgroundTransparency = 1
-    imageFrame.Visible = imageObj.Visible
-    imageFrame.ZIndex = imageObj.ZIndex
-    imageFrame.ImageTransparency = convertTransparency(imageObj.Transparency)
-    imageFrame.ImageColor3 = imageObj.Color
-    imageFrame.Image = imageObj.DataURL
-    imageFrame.Size = UDim2.fromOffset(imageObj.Size.X, imageObj.Size.Y)
-    imageFrame.Position = UDim2.fromOffset(imageObj.Position.X, imageObj.Position.Y)
+	if (Type == "Image") then
+		local ImageProperties = ({
+			Data = "rbxassetid://848623155", -- roblox assets only rn
+			Size = Vector2.new(),
+			Position = Vector2.new(),
+			Rounding = 0,
+			Color = Color3.new(),
+		});
 
-    imageFrame.Parent = drawingUI
+		local ImageLabel = Instance.new("ImageLabel");
 
-    local bs = table.create(0)
-    table.insert(drawings, bs)
+		ImageLabel.BorderSizePixel = 0
+		ImageLabel.ScaleType = Enum.ScaleType.Stretch
+		ImageLabel.Transparency = 1
 
-    return setmetatable(bs, {
-        __newindex = function(_, index, value)
-            if imageObj[index] == nil then return end
+		ImageLabel.ImageColor3 = ImageProperties.Color
+		ImageLabel.Visible = false
+		ImageLabel.Parent = DrawingUI
 
-            imageObj[index] = value
-            if index == "Data" then
-            --We can use it with getcustommasset
-            elseif index == "DataURL" then
-                imageFrame.Image = value
-            elseif index == "Size" then
-                imageFrame.Size = UDim2.fromOffset(value.X, value.Y)
-            elseif index == "Position" then
-                imageFrame.Position = UDim2.fromOffset(value.X, value.Y)
-            elseif index == "Visible" then
-                imageFrame.Visible = value
-            elseif index == "ZIndex" then
-                imageFrame.ZIndex = value
-            elseif index == "Transparency" then
-                imageFrame.ImageTransparency = convertTransparency(value)
-            elseif index == "Color" then
-                imageFrame.ImageColor3 = value
-            end
-        end,
-        __index = function(self, index)
-            if index == "Remove" or index == "Destroy" then
-                return function()
-                    imageFrame:Destroy()
-                    imageObj.Remove(self)
-                    for k in pairs(bs) do
-                        bs[k] = nil
-                    end
-                end
-            elseif index == "Data" then
-                return nil --We can use it with getcustommasset
-            end
-            return imageObj[index]
-        end
-    })
-	elseif drawingType == "Quad" then
-    local quadObj = {
-        PointA = Vector2.zero,
-        PointB = Vector2.zero,
-        PointC = Vector2.zero,
-        PointD = Vector2.zero,
-        Thickness = 1,
-        Filled = false
-    }
+		return setmetatable({}, {
+			__newindex = newcclosure(function(self, Property, Value)
+				if (Property == "Size") then
+					ImageLabel.Size = UDim2.new(0, Value.X, 0, Value.Y);
+					ImageProperties.Text = Value
+				end
+				if (Property == "Position") then
+					ImageLabel.Position = UDim2.new(0, Value.X, 0, Value.Y);
+					ImageProperties.Position = Value
+				end
+				if (Property == "Size") then
+					ImageLabel.Size = UDim2.new(0, Value.X, 0, Value.Y);
+					ImageProperties.Size = Value
+				end
+				if (Property == "Transparency") then
+					ImageLabel.ImageTransparency = math.clamp(1-Value,0,1)
+					ImageProperties.Transparency = math.clamp(1-Value,0,1)
+				end
+				if (Property == "Visible") then
+					ImageLabel.Visible = Value
+					ImageProperties.Visible = Value
+				end
+				if (Property == "Color") then
+					ImageLabel.ImageColor3 = Value
+					ImageProperties.Color = Value
+				end
+				if (Property == "Data") then
+					ImageLabel.Image = Value
+					ImageProperties.Data = Value
+				end
+				if (Property == "ZIndex") then
+					ImageLabel.ZIndex = Value
+				end
+			end),
+			__index = newcclosure(function(self, Property)
+				if (string.lower(tostring(Property)) == "remove") then
+					return (function()
+						ImageLabel:Destroy();
+					end)
+				end
+				if Property ==  "Destroy" then
+					return (function()
+						ImageLabel:Destroy();
+					end)
+				end
+				return ImageProperties[Property]
+			end)
+		})
+	end
 
-    for key, value in pairs(baseDrawingObj) do
-        quadObj[key] = value
-    end
+	if (Type == "Quad") then -- idk if this will work lmao
+		local QuadProperties = ({
+			Thickness = 1,
+			Transparency = 1,	
+			Color = Color3.new(),
+			PointA = Vector2.new();
+			PointB = Vector2.new();
+			PointC = Vector2.new();
+			PointD = Vector2.new();
+			Filled = false;
+		}  + BaseDrawingProperties);
 
-    local _linePoints = {
-        A = DrawingLib.new("Line"),
-        B = DrawingLib.new("Line"),
-        C = DrawingLib.new("Line"),
-        D = DrawingLib.new("Line")
-    }
+		local PointA = DrawingLib.new("Line")
+		local PointB = DrawingLib.new("Line")
+		local PointC = DrawingLib.new("Line")
+		local PointD = DrawingLib.new("Line")
 
-    local bs = {}
-    table.insert(drawings, bs)
+		return setmetatable({}, {
+			__newindex = newcclosure(function(self, Property, Value)
+				if Property == "Thickness" then
+					PointA.Thickness = Value
+					PointB.Thickness = Value
+					PointC.Thickness = Value
+					PointD.Thickness = Value
+					QuadProperties.Thickness = Value
+				end
+				if Property == "PointA" then
+					PointA.From = Value
+					PointB.To = Value
+				end
+				if Property == "PointB" then
+					PointB.From = Value
+					PointC.To = Value
+				end
+				if Property == "PointC" then
+					PointC.From = Value
+					PointD.To = Value
+				end
+				if Property == "PointD" then
+					PointD.From = Value
+					PointA.To = Value
+				end
+				if Property == "Filled" then
+					-- i'll do this later
+				end
+				if Property == "Color" then
+					PointA.Color = Value
+					PointB.Color = Value
+					PointC.Color = Value
+					PointD.Color = Value
+					QuadProperties.Color = Value
+				end
+				if Property == "Transparency" then
+					PointA.Transparency = Value
+					PointB.Transparency = Value
+					PointC.Transparency = Value
+					PointD.Transparency = Value
+					QuadProperties.Transparency = Value
+				end
+				if Property == "Visible" then
+					PointA.Visible = Value
+					PointB.Visible = Value
+					PointC.Visible = Value
+					PointD.Visible = Value
+					QuadProperties.Visible = Value
+				end
+				if (Property == "ZIndex") then
+					PointA.ZIndex = Value
+					PointB.ZIndex = Value
+					PointC.ZIndex = Value
+					PointD.ZIndex = Value
+					QuadProperties.ZIndex = Value
+				end
+			end),
+			__index = newcclosure(function(self, Property)
+				if (string.lower(tostring(Property)) == "remove") then
+					return (function()
+						PointA:Remove();
+						PointB:Remove();
+						PointC:Remove();
+						PointD:Remove();
+					end)
+				end
+				if Property ==  "Destroy" then
+					return (function()
+						PointA:Remove();
+						PointB:Remove();
+						PointC:Remove();
+						PointD:Remove();
+					end)
+				end
+				return QuadProperties[Property]
+			end)
+		});
+	end
 
-    local function updateLines()
-        _linePoints.A.From = quadObj.PointA
-        _linePoints.A.To = quadObj.PointB
-        _linePoints.B.From = quadObj.PointB
-        _linePoints.B.To = quadObj.PointC
-        _linePoints.C.From = quadObj.PointC
-        _linePoints.C.To = quadObj.PointD
-        _linePoints.D.From = quadObj.PointD
-        _linePoints.D.To = quadObj.PointA
-    end
+	if (Type == "Triangle") then  -- idk if this will work lmao
+		local TriangleProperties = ({
+			Thickness = 1,
+			Transparency = 1,	
+			Color = Color3.new(),
+			PointA = Vector2.new();
+			PointB = Vector2.new();
+			PointC = Vector2.new();
+			PointD = Vector2.new();
+			Filled = false;
+		}  + BaseDrawingProperties);
 
-    updateLines()
+		local PointA = DrawingLib.new("Line")
+		local PointB = DrawingLib.new("Line")
+		local PointC = DrawingLib.new("Line")
 
-    return setmetatable(bs, {
-        __newindex = function(_, index, value)
-            if quadObj[index] == nil then return end
+		return setmetatable({}, {
+			__newindex = newcclosure(function(self, Property, Value)
+				if Property == "Thickness" then
+					PointA.Thickness = Value
+					PointB.Thickness = Value
+					PointC.Thickness = Value
+					PointD.Thickness = Value
+					TriangleProperties.Thickness = Value
+				end
+				if Property == "PointA" then
+					PointA.From = Value
+					PointB.To = Value
+				end
+				if Property == "PointB" then
+					PointB.From = Value
+					PointC.To = Value
+				end
+				if Property == "PointC" then
+					PointC.From = Value
+					PointD.To = Value
+				end
+				if Property == "PointD" then
+					PointD.From = Value
+					PointA.To = Value
+				end
+				if Property == "Filled" then
+					-- i'll do this later
+				end
+				if Property == "Color" then
+					PointA.Color = Value
+					PointB.Color = Value
+					PointC.Color = Value
+					PointD.Color = Value
+					TriangleProperties.Color = Value
+				end
+				if Property == "Transparency" then
+					PointA.Transparency = Value
+					PointB.Transparency = Value
+					PointC.Transparency = Value
+					PointD.Transparency = Value
+					TriangleProperties.Transparency = Value
+				end
+				if Property == "Visible" then
+					PointA.Visible = Value
+					PointB.Visible = Value
+					PointC.Visible = Value
+					PointD.Visible = Value
+					TriangleProperties.Visible = Value
+				end
+				if (Property == "ZIndex") then
+					PointA.ZIndex = Value
+					PointB.ZIndex = Value
+					PointC.ZIndex = Value
+					PointD.ZIndex = Value
+					TriangleProperties.ZIndex = Value
+				end
+			end),
+			__index = newcclosure(function(self, Property)
+				if (string.lower(tostring(Property)) == "remove") then
+					return (function()
+						PointA:Remove();
+						PointB:Remove();
+						PointC:Remove();
+					end)
+				end
+				if Property ==  "Destroy" then
+					return (function()
+						PointA:Remove();
+						PointB:Remove();
+						PointC:Remove();
+					end)
+				end
+				return TriangleProperties[Property]
+			end)
+		});
+	end
+end)
 
-            quadObj[index] = value
-            if index == "PointA" or index == "PointB" or index == "PointC" or index == "PointD" then
-                updateLines()
-            elseif index == "Thickness" or index == "Visible" or index == "Color" or index == "ZIndex" then
-                for _, linePoint in pairs(_linePoints) do
-                    linePoint[index] = value
-                end
-            elseif index == "Filled" then
-			--I didnt make that
-            end
-        end,
-        __index = function(self, index)
-            if index == "Remove" or index == "Destroy" then
-                return function()
-                    for _, linePoint in pairs(_linePoints) do
-                        linePoint:Destroy()
-                    end
-                    quadObj.Remove(self)
-                    for k in pairs(bs) do
-                        bs[k] = nil
-                    end
-                end
-            end
-            return quadObj[index]
-        end
-    })
 
-elseif drawingType == "Triangle" then
-    local triangleObj = {
-        PointA = Vector2.zero,
-        PointB = Vector2.zero,
-        PointC = Vector2.zero,
-        Thickness = 1,
-        Filled = false
-    }
+DrawingLib.clear = newcclosure(function() 
+	DrawingUI:ClearAllChildren();
+end)
 
-    for key, value in pairs(baseDrawingObj) do
-        triangleObj[key] = value
-    end
-
-    local _linePoints = {
-        A = DrawingLib.new("Line"),
-        B = DrawingLib.new("Line"),
-        C = DrawingLib.new("Line")
-    }
-
-    local bs = {}
-    table.insert(drawings, bs)
-
-    local function updateLines()
-        _linePoints.A.From = triangleObj.PointA
-        _linePoints.A.To = triangleObj.PointB
-        _linePoints.B.From = triangleObj.PointB
-        _linePoints.B.To = triangleObj.PointC
-        _linePoints.C.From = triangleObj.PointC
-        _linePoints.C.To = triangleObj.PointA
-    end
-
-    updateLines()
-
-    return setmetatable(bs, {
-        __newindex = function(_, index, value)
-            if triangleObj[index] == nil then return end
-
-            triangleObj[index] = value
-            if index == "PointA" or index == "PointB" or index == "PointC" then
-                updateLines()
-            elseif index == "Thickness" or index == "Visible" or index == "Color" or index == "ZIndex" then
-                for _, linePoint in pairs(_linePoints) do
-                    linePoint[index] = value
-                end
-            elseif index == "Filled" then
-                -- Placeholder for future functionality
-            end
-        end,
-        __index = function(self, index)
-            if index == "Remove" or index == "Destroy" then
-                return function()
-                    for _, linePoint in pairs(_linePoints) do
-                        linePoint:Destroy()
-                    end
-                    triangleObj.Remove(self)
-                    for k in pairs(bs) do
-                        bs[k] = nil
-                    end
-                end
-            end
-            return triangleObj[index]
-        end
-    })
+if RunService:IsStudio() then
+	return DrawingLib
+else
+	if getgenv then
+		getgenv()["Drawing"] = DrawingLib
+		getgenv()["clear_drawing_lib"] = DrawingLib.clear
+		Drawing = drawing
+	else
+		Drawing = DrawingLib
+	end
 end
-end
-
 getgenv()["Drawing"] = DrawingLib
-getgenv()["Drawing"]["Fonts"] = {
-    ['UI'] = 0,
-    ['System'] = 1,
-    ['Plex'] = 2,
-    ['Monospace'] = 3
-}
+getgenv()["clear_drawing_lib"] = DrawingLib.clear
+getgenv().Drawing = DrawingLib
+getgenv().clear_drawing_lib = DrawingLib.clear
 
-getgenv()["cleardrawcache"] = newcclosure(function()
-    for _, v in pairs(Drawings) do
-        v:Remove()
-    end
-    table.clear(drawings)
+Drawing.Fonts = {}
+
+Drawing.Fonts.UI = 0
+Drawing.Fonts.System = 1
+Drawing.Fonts.Plex = 2
+Drawing.Fonts.Monospace = 3
+
+getgenv().cleardrawcache = DrawingLib.clear
+Drawing.cleardrawcache = DrawingLib.clear
+
+function GetObjects(asset)
+	return {
+		game:GetService("InsertService"):LoadLocalAsset(asset)
+	}
+end
+
+local rendered = false
+getgenv().isrenderobj = newcclosure(function(a, drawing2)
+	if rendered == true then
+		return false
+	end
+
+	rendered = true
+	return true
 end)
 
-getgenv()["clear_draw_cache"] = cleardrawcache
-getgenv()["ClearDrawCache"] = cleardrawcache
-
-getgenv()["isrenderobj"] = newcclosure(function(Inst)
-    for _, v in pairs(drawings) do
-        if v == Inst and type(v) == "table" then
-            return true
-        end
-    end
-    return false
+getgenv().setrenderproperty = newcclosure(function(drawing, object, value)
+	drawing[object] = value
+	return object
 end)
 
-getgenv()["is_render_obj"] = isrenderobj
-getgenv()["IsRenderObj"] = isrenderobj
-
-getgenv()["getrenderproperty"] = newcclosure(function(a, b)
-    return a[b]
-end)
-
-getgenv()["get_render_property"] = getrenderproperty
-getgenv()["GetRenderProperty"] = getrenderproperty
-
-getgenv()["setrenderproperty"] = newcclosure(function(a, b, c)
-    local success, err = pcall(function()
-        a[b] = c
-    end)
-    if not success and err then warn(err) end
-end)
-
-getgenv()["set_render_property"] = getrenderproperty
-getgenv()["SetRenderProperty"] = setrenderproperty
+getgenv().getrenderproperty = function(drawing, object)
+	local value = drawing[object]
+	return value
+end
