@@ -136,6 +136,10 @@ getgenv().getscripts = newcclosure(function()
     end
     return returntable
 end)
+
+getgenv().getnilinstances = newcclosure(function()
+    return {}
+end)
 getgenv().getsenv = newcclosure(function(script_instance)
 	for i, v in pairs(getreg()) do
 		if type(v) == "function" then
