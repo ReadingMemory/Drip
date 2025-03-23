@@ -85,16 +85,13 @@ getgenv().RBXActive = true
 getgenv().invalidated = {}
 getgenv().Files = {}
 
-local nilinstances = {}
-
+local nilinstances
 game.DescendantRemoving:Connect(function(d)
 	table.insert(nilinstances, d)
 end)
-
 game:FindFirstChildOfClass('UserInputService').WindowFocused:Connect(function()
 	RBXActive = true
 end)
-
 game:FindFirstChildOfClass('UserInputService').WindowFocusReleased:Connect(function()
 	RBXActive = false
 end)
@@ -509,7 +506,7 @@ getgenv().FireProximityPrompt = fireproximityprompt
 getgenv().info = newcclosure(function(...)
 	game:GetService('TestService'):Message(table.concat({...}, ' '))
 end)
---[[
+
 local security = {
 	'OpenVideosFolder', 'OpenScreenshotsFolder', 'GetRobuxBalance', 'PerformPurchase',
 	'PromptBundlePurchase', 'PromptNativePurchase', 'PromptProductPurchase', 'PromptPurchase',
@@ -558,7 +555,7 @@ gmt.__namecall = function(self, ...)
 	return old_namecall(self, ...)
 end
 
-setreadonly(gmt, true)]]
+setreadonly(gmt, true)
 
 local lz4 = {}
 
