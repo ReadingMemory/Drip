@@ -1,4 +1,4 @@
-local ScreenGui = Instance.new("ScreenGui", cloneref(game:GetService("CoreGui")))
+local ScreenGui = Instance.new("ScreenGui", game:GetService("CoreGui"))
 ScreenGui.ResetOnSpawn = false
 ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
 
