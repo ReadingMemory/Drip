@@ -85,10 +85,6 @@ getgenv().RBXActive = true
 getgenv().invalidated = {}
 getgenv().Files = {}
 
-local nilinstances = {}
-game.DescendantRemoving:Connect(function(d)
-	table.insert(nilinstances, d)
-end)
 game:FindFirstChildOfClass('UserInputService').WindowFocused:Connect(function()
 	RBXActive = true
 end)
@@ -213,9 +209,7 @@ getgenv().getscripts = newcclosure(function()
 	return returntable
 end)
 
-getgenv().getnilinstances = newcclosure(function()
-	return nilinstances
-end)
+getgenv().getnilinstances = nil
 
 getgenv().getsenv = newcclosure(function(script_instance)
 	for i, v in pairs(getreg()) do
