@@ -85,8 +85,7 @@ getgenv().RBXActive = true
 getgenv().invalidated = {}
 getgenv().Files = {}
 
-local nilinstances
-
+local nilinstances = {}
 game.DescendantRemoving:Connect(function(d)
 	table.insert(nilinstances, d)
 end)
@@ -95,10 +94,6 @@ game:FindFirstChildOfClass('UserInputService').WindowFocused:Connect(function()
 end)
 game:FindFirstChildOfClass('UserInputService').WindowFocusReleased:Connect(function()
 	RBXActive = false
-end)
-
-getgenv().identifyexecutor = newcclosure(function()
-    return "Alienware", 1
 end)
 
 getinfo = newcclosure(function(f, options)
