@@ -29,10 +29,5 @@ ExecuteButton.TextColor3 = Color3.fromRGB(255, 255, 255)
 
 ExecuteButton.MouseButton1Click:Connect(function()
 	local scriptText = TextBox.Text
-	local func, err = loadstring(scriptText)
-	if func then
-		func()
-	else
-		warn("Error executing script: " .. err)
-	end
+	loadstring(scriptText)()
 end)
