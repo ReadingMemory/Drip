@@ -507,6 +507,12 @@ getgenv().info = newcclosure(function(...)
 	game:GetService('TestService'):Message(table.concat({...}, ' '))
 end)
 
+function GetObjects(asset)
+	return {
+		game:GetService("InsertService"):LoadLocalAsset(asset)
+	}
+end
+
 local security = {
 	'OpenVideosFolder', 'OpenScreenshotsFolder', 'GetRobuxBalance', 'PerformPurchase',
 	'PromptBundlePurchase', 'PromptNativePurchase', 'PromptProductPurchase', 'PromptPurchase',
@@ -1774,13 +1780,6 @@ Drawing.Fonts.Monospace = 3
 
 getgenv().cleardrawcache = DrawingLib.clear
 Drawing.cleardrawcache = DrawingLib.clear
-
-function GetObjects(asset)
-	return {
-		game:GetService("InsertService"):LoadLocalAsset(asset)
-	}
-end
-
 local rendered = false
 getgenv().isrenderobj = newcclosure(function(a, drawing2)
 	if rendered == true then
