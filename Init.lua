@@ -507,55 +507,73 @@ function GetObjects(asset)
 	}
 end
 
-local security = {
-	'OpenVideosFolder', 'OpenScreenshotsFolder', 'GetRobuxBalance', 'PerformPurchase',
-	'PromptBundlePurchase', 'PromptNativePurchase', 'PromptProductPurchase', 'PromptPurchase',
-	'PromptThirdPartyPurchase', 'Publish', 'GetMessageId', 'OpenBrowserWindow', 'RequestInternal',
-	'ExecuteJavaScript', 'openvideosfolder', 'openscreenshotsfolder', 'getrobuxbalance',
-	'performpurchase', 'promptbundlepurchase', 'promptnativepurchase', 'promptproductpurchase',
-	'promptpurchase', 'promptthirdpartypurchase', 'publish', 'getmessageid', 'openbrowserwindow',
-	'requestinternal', 'executejavascript', 'openVideosFolder', 'openScreenshotsFolder',
-	'getRobuxBalance', 'performPurchase', 'promptBundlePurchase', 'promptNativePurchase',
-	'promptProductPurchase', 'promptPurchase', 'promptThirdPartyPurchase', 'publish',
-	'getMessageId', 'openBrowserWindow', 'requestInternal', 'executeJavaScript',
-	'ToggleRecording', 'TakeScreenshot', 'HttpRequestAsync', 'GetLast', 'SendCommand',
-	'GetAsync', 'GetAsyncFullUrl', 'RequestAsync', 'MakeRequest', 'OpenUrl'
+local BlacklistedFunctions = {
+    "OpenVideosFolder",
+    "OpenScreenshotsFolder",
+    "GetRobuxBalance",
+    "PerformPurchase",
+    "PromptBundlePurchase",
+    "PromptNativePurchase",
+    "PromptProductPurchase",
+    "PromptPurchase",
+    "PromptGamePassPurchase",
+    "PromptRobloxPurchase",
+    "PromptThirdPartyPurchase",
+    "Publish",
+    "GetMessageId",
+    "OpenBrowserWindow",
+    "OpenNativeOverlay",
+    "RequestInternal",
+    "ExecuteJavaScript",
+    "EmitHybridEvent",
+    "AddCoreScriptLocal",
+    "HttpRequestAsync",
+    "ReportAbuse",
+    "SaveScriptProfilingData",
+    "OpenUrl",
+    "DeleteCapture",
+    "DeleteCapturesAsync"
 }
 
-local gmt = getrawmetatable(game)
-local old_index = gmt.__index
-local old_namecall = gmt.__namecall
-local _game = game
+local Metatable = getrawmetatable(game)
+local OldMetatable = Metatable.__namecall
 
-setreadonly(gmt, false)
+setreadonly(Metatable, false)
+Metatable.__namecall = function(Self, ...)
+    local Method = getnamecallmethod()
+   
+    if table.find(BlacklistedFunctions, Method) then
+        warn("Attempt to call dangerous function.")
+        return nil
+    end
 
-gmt.__index = function(self, i)
-	if self == _game and (i == 'HttpGet' or i == 'HttpGetAsync') then
-		return function(self, ...)
-			return _game:HttpGet(...)
-		end
-	elseif self == _game and i == 'GetObjects' then
-		return function(self, ...)
-			return _game:GetObjects(...)
-		end
-	elseif table.find(security, i) then
-		return false, "Disabled for security reasons." 
-	end
-	return old_index(self, i)
+    if Method == "HttpGet" or Method == "HttpGetAsync" then
+        return rqst({Url = Url, Method = "GET"}).Body --httpget(...)
+    elseif Method == "GetObjects" then 
+        return GetObjects(...)
+    end
+
+    return OldMetatable(Self, ...)
 end
 
-gmt.__namecall = function(self, ...)
-	if self == _game and (getnamecallmethod() == 'HttpGet' or getnamecallmethod() == 'HttpGetAsync') then
-		return httpget(...)
-	elseif self == _game and getnamecallmethod() == 'GetObjects' then
-		return GetObjects(...)
-	elseif table.find(security, getnamecallmethod()) then
-		return false, "Disabled for security reasons."
-	end
-	return old_namecall(self, ...)
-end
+local OldIndex = Metatable.__index
 
-setreadonly(gmt, true)
+setreadonly(Metatable, false)
+Metatable.__index = function(Self, i)
+    if table.find(BlacklistedFunctions, i) then
+        warn("Attempt to call dangerous function.")
+        return nil
+    end
+
+    if Self == game then
+        if i == "HttpGet" or i == "HttpGetAsync" then 
+            return rqst({Url = Url, Method = "GET"}).Body --httpget
+        elseif i == "GetObjects" then 
+            return GetObjects
+        end
+    end
+    return OldIndex(Self, i)
+end
 
 local lz4 = {}
 
