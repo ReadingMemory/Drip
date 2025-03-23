@@ -81,10 +81,80 @@ game = getgenv().Game]]
 
 warn("init loaded")
 
+getgenv().RBXActive = true
 getgenv().invalidated = {}
+getgenv().Files
+
+local nilinstances
+game.DescendantRemoving:Connect(function(d)
+	table.insert(nilinstances, d)
+end)
+game:FindFirstChildOfClass('UserInputService').WindowFocused:Connect(function()
+	RBXActive = true
+end)
+game:FindFirstChildOfClass('UserInputService').WindowFocusReleased:Connect(function()
+	RBXActive = false
+end)
+
+getinfo = newcclosure(function(f, options)
+	if type(options) == "string" then
+		options = string.lower(options) 
+	else
+		options = "sflnu"
+	end
+    
+	local result = {}
+	for index = 1, #options do
+		local option = string.sub(options, index, index)
+		if "s" == option then
+			local short_src = debug.info(f, "s")
+			result.short_src = short_src
+			result.source = "=" .. short_src
+			result.what = if short_src == "[C]" then "C" else "Lua"
+		elseif "f" == option then
+			result.func = debug.info(f, "f")
+		elseif "l" == option then
+			result.currentline = debug.info(f, "l")
+		elseif "n" == option then
+			result.name = debug.info(f, "n")
+		elseif "u" == option or option == "a" then
+			local numparams, is_vararg = debug.info(f, "a")
+			result.numparams = numparams
+			result.is_vararg = if is_vararg then 1 else 0
+			if "u" == option then
+				result.nups = -1
+			end
+		end
+	end
+
+	return result
+end)
+
+--[[
+    ["getproto"] = getproto,
+    ["getprotos"] = getprotos,
+    ["getupvalue"] = getupvalue,
+    ["getupvalues"] = getupvalues,
+    ["getconstants"] = getconstants,
+    ["getconstant"] = getconstant,
+    ["setconstant"] = setconstant,
+    ["setupvalue"] = setupvalue,
+]]
+
+getgenv()["debug"] = {
+    ["getinfo"] = getinfo,
+    ["traceback"] = debug["traceback"],
+    ["info"] = debug["info"],
+    ["profilebegin"] = debug["profilebegin"],
+    ["profileend"] = debug["profileend"],
+    ["getmemorycategory"] = debug["getmemorycategory"],
+    ["setmemorycategory"] = debug["setmemorycategory"],
+    ["resetmemorycategory"] = debug["resetmemorycategory"],
+    ["dumpcodesize"] = debug["dumpcodesize"],
+}
 
 getgenv().cache = {
-    invalidate = function(object)
+    invalidate = newcclosure(function(object)
         local function clone(object)
 			local old_archivable = object.Archivable
 			local clone
@@ -103,16 +173,16 @@ getgenv().cache = {
 
 		object:Destroy()
 		clone.Parent = oldParent
-    end,
-    iscached = function(object)
+    end),
+    iscached = newcclosure(function(object)
         return table.find(invalidated, object) == nil
-    end,
-    replace = function(object, new_object)
+    end),
+    replace = newcclosure(function(object, new_object)
         if object:IsA("BasePart") and new_object:IsA("BasePart") then
 			invalidate(object)
 			table.insert(invalidated, new_object)
 		end
-    end
+    end)
 }
 
 getgenv().getrunningscripts = newcclosure(function()
@@ -127,6 +197,9 @@ end)
 
 
 getgenv().getscripthash = newcclosure(function(script)
+    assert(typeof(scr) == 'Instance', 'Argument #1 to \'getscripthash\' must be an Instance, not ' .. typeof(scr))
+	assert(scr.ClassName ~= 'LocalScript' or scr.ClassName ~= 'Script', 'Argument #1 to \'getscripthash\' must be a LocalScript or Script')
+
 	return script:GetHash()
 end)
 
@@ -141,8 +214,9 @@ getgenv().getscripts = newcclosure(function()
 end)
 
 getgenv().getnilinstances = newcclosure(function()
-    return {}
+    return nilinstances
 end)
+
 getgenv().getsenv = newcclosure(function(script_instance)
 	for i, v in pairs(getreg()) do
 		if type(v) == "function" then
@@ -173,49 +247,125 @@ getgenv().getloadedmodules = newcclosure(function()
 	return t
 end)
 
+-- File system (Disabled original to prevent spamming files)
+
+local function startswith(a, b)
+	return a:sub(1, #b) == b
+end
+local function endswith(hello, lo) 
+	return hello:sub(#hello - #lo + 1, #hello) == lo
+end
+
+getgenv().writefile = newcclosure(function(path, content)
+	local Path = path:split('/')
+	local CurrentPath = {}
+	for i = 1, #Path do
+		local a = Path[i]
+		CurrentPath[i] = a
+		if not Files[a] and i ~= #Path then
+			Files[table.concat(CurrentPath, '/')] = {}
+			Files[table.concat(CurrentPath, '/') .. '/'] = Files[table.concat(CurrentPath, '/')]
+		elseif i == #Path then
+			Files[table.concat(CurrentPath, '/')] = tostring(content)
+		end
+	end
+end)
+
+getgenv().makefolder = newcclosure(function(path)
+    Files[path] = {}
+	Files[path .. '/'] = Files[path]
+end)
+
+getgenv().isfolder = newcclosure(function(path)
+	return type(Files[path]) == 'table'
+end)
+
+getgenv().isfile = newcclosure(function(path)
+	return type(Files[path]) == 'string'
+end)
+
+getgenv().readfile = newcclosure(function(path)
+	return Files[path]
+end)
+
+getgenv().appendfile = newcclosure(function(path, text2)
+	writefile(path, readfile(path) .. text2)
+end)
+
+getgenv().loadfile = newcclosure(function(path)
+	local content = readfile(path)
+	if not content then error('File \'' .. tostring(path) .. '\' does not exist.') return '' end
+	local s, func = pcall(function()
+		return loadstring(content)
+	end)
+	return func, not s and func or nil
+end)
+
+getgenv().delfolder = newcclosure(function(path)
+	local f = Files[path]
+	if type(f) == 'table' then Files[path] = nil end
+end)
+
+getgenv().delfile = newcclosure(function(path)
+	local f = Files[path]
+	if type(f) == 'string' then Files[path] = nil end
+end)
+
+getgenv().listfiles = newcclosure((path)
+	if not path or path == '' then
+		local Files = {}
+		for i, v in pairs(Files) do
+			if #i:split('/') == 1 then table.insert(Files, i) end
+		end
+		return Files
+	end
+	if type(Files[path]) ~= 'table' then return error(path .. ' is not a folder.') end
+	local Files_2 = {}
+	for i, v in pairs(Files) do
+		if startswith(i, path .. '/') and not endswith(i, '/') and i ~= path and #i:split('/') == (#path:split('/') + 1) then table.insert(Files_2, i) end
+	end
+	return Files_2
+end)
+
 local VirtualInputManager = game:GetService("VirtualInputManager")
 
-getgenv().mouse1click = function()
+getgenv().mouse1click = newcclosure(function()
 	VirtualInputManager:SendMouseButtonEvent(0, 0, 0, true, game, 1)
 	VirtualInputManager:SendMouseButtonEvent(0, 0, 0, false, game, 1)
-end
+end)
 
-getgenv().mouse1press = function()
+getgenv().mouse1press = newcclosure(function()
 	VirtualInputManager:SendMouseButtonEvent(0, 0, 0, true, game, 1)
-end
+end)
 
-getgenv().mouse1release = function()
+getgenv().mouse1release = newcclosure(function()
 	VirtualInputManager:SendMouseButtonEvent(0, 0, 0, false, game, 1)
-end
+end)
 
-getgenv().mouse2click = function()
+getgenv().mouse2click = newcclosure(function()
 	VirtualInputManager:SendMouseButtonEvent(0, 0, 1, true, game, 1)
 	VirtualInputManager:SendMouseButtonEvent(0, 0, 1, false, game, 1)
-end
+end)
 
-getgenv().mouse2press = function()
+getgenv().mouse2press = newcclosure(function()
 	VirtualInputManager:SendMouseButtonEvent(0, 0, 1, true, game, 1)
-end
+end)
 
-getgenv().mouse2release = function()
+getgenv().mouse2release = newcclosure(function()
 	VirtualInputManager:SendMouseButtonEvent(0, 0, 1, false, game, 1)
-end
+end)
 
-getgenv().mousemoveabs = function(x, y)
+getgenv().mousemoveabs = newcclosure(function(x, y)
 	VirtualInputManager:SendMouseMoveEvent(x, y, game)
-end
+end)
 
-getgenv().mousemoverel = function(x, y)
+getgenv().mousemoverel = newcclosure(function(x, y)
 	local currentPos = UserInputService:GetMouseLocation()
 	VirtualInputManager:SendMouseMoveEvent(currentPos.X + x, currentPos.Y + y, game)
-end
+end)
 
-getgenv().mousescroll = function(pixels)
+getgenv().mousescroll = newcclosure(function(pixels)
 	VirtualInputManager:SendMouseWheelEvent(0, 0, pixels > 0, game)
-end
-
-getgenv().info = newcclosure(function(...)
-	game:GetService('TestService'):Message(table.concat({...}, ' '))
 end)
 
 local _isscriptable = clonefunction(isscriptable)
@@ -352,6 +502,10 @@ end)
 
 getgenv().fire_proximity_prompt = fireproximityprompt
 getgenv().FireProximityPrompt = fireproximityprompt
+
+getgenv().info = newcclosure(function(...)
+	game:GetService('TestService'):Message(table.concat({...}, ' '))
+end)
 --[[
 local security = {
 	'OpenVideosFolder', 'OpenScreenshotsFolder', 'GetRobuxBalance', 'PerformPurchase',
