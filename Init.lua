@@ -32,7 +32,7 @@ end)
 getgenv().get_calling_script = getcallingscript
 getgenv().GetCallingScript = getcallingscript
 
-getgenv().cloneref = newcclosure(function()
+getgenv().cloneref = newcclosure(function(object)
 	if not cloneref_table[object] then cloneref_table[object] = {} end
 	local clone = {}
 
