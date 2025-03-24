@@ -1,153 +1,70 @@
 --!native
 --!optimize 2
 
---[[getgenv().hookmetamethod = function(self, method, func)
-    local mt = getrawmetatable(self)
-    local old = mt[method]
-    setreadonly(mt, false)
-    mt[method] = func
-    setreadonly(mt, true)
-    return old
-end]]
---[[local proxiedServices = {
-    LinkingService = {{
-        "OpenUrl"
-    }, game:GetService("LinkingService")},
-    ScriptContext = {{
-        "SaveScriptProfilingData", 
-        "AddCoreScriptLocal",
-        "ScriptProfilerService"
-    }, game:GetService("ScriptContext")},
-}
-
-local security = {
-    'OpenVideosFolder', 'OpenScreenshotsFolder', 'GetRobuxBalance', 'PerformPurchase',
-    'PromptBundlePurchase', 'PromptNativePurchase', 'PromptProductPurchase', 'PromptPurchase',
-    'PromptThirdPartyPurchase', 'Publish', 'GetMessageId', 'OpenBrowserWindow', 'RequestInternal',
-    'ExecuteJavaScript', 'ToggleRecording', 'TakeScreenshot', 'HttpRequestAsync', 'GetLast', 'SendCommand',
-    'GetAsync', 'GetAsyncFullUrl', 'RequestAsync', 'MakeRequest', 'OpenUrl'
-}
-
-getgenv().game = newproxy(true)
-local gameProxy = getmetatable(getgenv().game)
-local _game = game
-
-gameProxy.__index = function(self, index)
-    if table.find(security, index) then
-        return function()
-            return false, "Disabled for security reasons."
-        end
-    end
-
-    if index == "HttpGet" or index == "HttpGetAsync" then
-        return function(self, ...)
-            return HttpGet(...)
-        end
-    elseif index == "HttpPost" or index == "HttpPostAsync" then
-        return function(self, ...)
-            return HttpPost(...)
-        end
-    elseif index == "GetObjects" then
-        return function(self, ...)
-            return GetObjects(...)
-        end
-    end
-
-    if proxiedServices[index] then
-        return proxiedServices[index].proxy
-    end
-
-    if type(_game[index]) == "function" then
-        return function(self, ...)
-            return _game[index] and _game[index](_game, ...)
-        end
-    end
-
-    return _game[index]
-end
-
-gameProxy.__newindex = function(self, index, value)
-    _game[index] = value
-end
-
-gameProxy.__tostring = function(self)
-    return _game.Name
-end
-
-gameProxy.__metatable = getmetatable(_game)
-
-getgenv().Game = getgenv().game
-game = getgenv().Game]]
-
 warn("init loaded")
 
 getgenv().RBXActive = true
 getgenv().invalidated = {}
 getgenv().Files = {}
 
+local cloneref_table = {}
+
 game:FindFirstChildOfClass('UserInputService').WindowFocused:Connect(function()
 	RBXActive = true
 end)
+
 game:FindFirstChildOfClass('UserInputService').WindowFocusReleased:Connect(function()
 	RBXActive = false
 end)
 
-getinfo = newcclosure(function(f, options)
-	if type(options) == "string" then
-		options = string.lower(options) 
-	else
-		options = "sflnu"
-	end
-
-	local result = {}
-	for index = 1, #options do
-		local option = string.sub(options, index, index)
-		if "s" == option then
-			local short_src = debug.info(f, "s")
-			result.short_src = short_src
-			result.source = "=" .. short_src
-			result.what = if short_src == "[C]" then "C" else "Lua"
-		elseif "f" == option then
-			result.func = debug.info(f, "f")
-		elseif "l" == option then
-			result.currentline = debug.info(f, "l")
-		elseif "n" == option then
-			result.name = debug.info(f, "n")
-		elseif "u" == option or option == "a" then
-			local numparams, is_vararg = debug.info(f, "a")
-			result.numparams = numparams
-			result.is_vararg = if is_vararg then 1 else 0
-			if "u" == option then
-				result.nups = -1
-			end
-		end
-	end
-
-	return result
+getgenv().isrbxactive = newcclosure(function()
+	return RBXActive
 end)
 
---[[
-    ["getproto"] = getproto,
-    ["getprotos"] = getprotos,
-    ["getupvalue"] = getupvalue,
-    ["getupvalues"] = getupvalues,
-    ["getconstants"] = getconstants,
-    ["getconstant"] = getconstant,
-    ["setconstant"] = setconstant,
-    ["setupvalue"] = setupvalue,
-]]
+getgenv().isgameactive = newcclosure(function()
+	return RBXActive
+end)
 
-getgenv()["debug"] = {
-	["getinfo"] = getinfo,
-	["traceback"] = debug["traceback"],
-	["info"] = debug["info"],
-	["profilebegin"] = debug["profilebegin"],
-	["profileend"] = debug["profileend"],
-	["getmemorycategory"] = debug["getmemorycategory"],
-	["setmemorycategory"] = debug["setmemorycategory"],
-	["resetmemorycategory"] = debug["resetmemorycategory"],
-	["dumpcodesize"] = debug["dumpcodesize"],
-}
+getgenv().getcallingscript = newcclosure(function()
+	return getgenv(0).script
+end)
+
+getgenv().get_calling_script = getcallingscript
+getgenv().GetCallingScript = getcallingscript
+
+getgenv().cloneref = newcclosure(function()
+	if not cloneref_table[object] then cloneref_table[object] = {} end
+	local clone = {}
+
+	local mt = {
+		__type = "Instance",
+		__tostring = function()
+			return object.Name
+		end,
+		__index = function(_, key)
+			local value = object[key]
+			if type(value) == "function" then
+				return function(_, ...)
+					return value(object, ...)
+				end
+			else
+				return value
+			end
+		end,
+		__newindex = function(_, key, value)
+			object[key] = value
+		end,
+		__metatable = "The metatable is locked",
+		__len = function()
+			error("attempt to get length of a userdata value")
+		end
+	}
+
+	setmetatable(clone, mt)
+	table.insert(cloneref_table[object], clone)
+
+	return clone
+end)
 
 getgenv().cache = {
 	invalidate = newcclosure(function(object)
@@ -321,7 +238,7 @@ getgenv().listfiles = newcclosure(function(path)
 	return Files_2
 end)
 
-	local VirtualInputManager = game:GetService("VirtualInputManager")
+local VirtualInputManager = cloneref(game:GetService("VirtualInputManager"))
 
 getgenv().mouse1click = newcclosure(function()
 	VirtualInputManager:SendMouseButtonEvent(0, 0, 0, true, game, 1)
@@ -1111,7 +1028,7 @@ local DrawingLib = {}
 
 local Camera = game:GetService("Workspace"):FindFirstChild("Camera")
 local RunService = game:GetService("RunService")
-local CoreGui = (RunService:IsStudio() and game:GetService("Players")["LocalPlayer"]:WaitForChild("PlayerGui") or game:GetService("CoreGui"))
+local CoreGui = cloneref(game:GetService("CoreGui"))
 
 local BaseDrawingProperties = setmetatable({
 	Visible = true,
