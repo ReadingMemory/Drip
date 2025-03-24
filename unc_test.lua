@@ -73,6 +73,7 @@ task.defer(function()
 end)
 
 -- Cache
+task.wait(1)
 
 test("cache.invalidate", {}, function()
 	local container = Instance.new("Folder")
@@ -80,6 +81,7 @@ test("cache.invalidate", {}, function()
 	cache.invalidate(container:FindFirstChild("Part"))
 	assert(part ~= container:FindFirstChild("Part"), "Reference `part` could not be invalidated")
 end)
+task.wait(1)
 
 test("cache.iscached", {}, function()
 	local part = Instance.new("Part")
@@ -87,6 +89,7 @@ test("cache.iscached", {}, function()
 	cache.invalidate(part)
 	assert(not cache.iscached(part), "Part should not be cached")
 end)
+task.wait(1)
 
 test("cache.replace", {}, function()
 	local part = Instance.new("Part")
@@ -94,6 +97,7 @@ test("cache.replace", {}, function()
 	cache.replace(part, fire)
 	assert(part ~= fire, "Part was not replaced with Fire")
 end)
+task.wait(1)
 
 test("cloneref", {}, function()
 	local part = Instance.new("Part")
@@ -102,6 +106,7 @@ test("cloneref", {}, function()
 	clone.Name = "Test"
 	assert(part.Name == "Test", "Clone should have updated the original")
 end)
+task.wait(1)
 
 test("compareinstances", {}, function()
 	local part = Instance.new("Part")
@@ -109,6 +114,7 @@ test("compareinstances", {}, function()
 	assert(part ~= clone, "Clone should not be equal to original")
 	assert(compareinstances(part, clone), "Clone should be equal to original when using compareinstances()")
 end)
+task.wait(1)
 
 -- Closures
 
@@ -146,10 +152,12 @@ local function shallowEqual(t1, t2)
 
 	return true
 end
+task.wait(1)
 
 test("checkcaller", {}, function()
 	assert(checkcaller(), "Main scope should return true")
 end)
+task.wait(1)
 
 test("clonefunction", {}, function()
 	local function test()
@@ -159,8 +167,10 @@ test("clonefunction", {}, function()
 	assert(test() == copy(), "The clone should return the same value as the original")
 	assert(test ~= copy, "The clone should not be equal to the original")
 end)
+task.wait(1)
 
 test("getcallingscript", {})
+task.wait(1)
 
 test("getscriptclosure", {"getscriptfunction"}, function()
 	local module = game:GetService("CoreGui").RobloxGui.Modules.Common.Constants
@@ -169,6 +179,7 @@ test("getscriptclosure", {"getscriptfunction"}, function()
 	assert(constants ~= generated, "Generated module should not match the original")
 	assert(shallowEqual(constants, generated), "Generated constant table should be shallow equal to the original")
 end)
+task.wait(1)
 
 test("hookfunction", {"replaceclosure"}, function()
 	local function test()
@@ -181,16 +192,19 @@ test("hookfunction", {"replaceclosure"}, function()
 	assert(ref() == true, "Original function should return true")
 	assert(test ~= ref, "Original function should not be same as the reference")
 end)
+task.wait(1)
 
 test("iscclosure", {}, function()
 	assert(iscclosure(print) == true, "Function 'print' should be a C closure")
 	assert(iscclosure(function() end) == false, "Executor function should not be a C closure")
 end)
+task.wait(1)
 
 test("islclosure", {}, function()
 	assert(islclosure(print) == false, "Function 'print' should not be a Lua closure")
 	assert(islclosure(function() end) == true, "Executor function should be a Lua closure")
 end)
+task.wait(1)
 
 test("isexecutorclosure", {"checkclosure", "isourclosure"}, function()
 	assert(isexecutorclosure(isexecutorclosure) == true, "Did not return true for an executor global")
@@ -198,6 +212,7 @@ test("isexecutorclosure", {"checkclosure", "isourclosure"}, function()
 	assert(isexecutorclosure(function() end) == true, "Did not return true for an executor Luau closure")
 	assert(isexecutorclosure(print) == false, "Did not return false for a Roblox global")
 end)
+task.wait(1)
 
 test("loadstring", {}, function()
 	local animate = game:GetService("Players").LocalPlayer.Character.Animate
@@ -207,6 +222,7 @@ test("loadstring", {}, function()
 	assert(assert(loadstring("return ... + 1"))(1) == 2, "Failed to do simple math")
 	assert(type(select(2, loadstring("f"))) == "string", "Loadstring did not return anything for a compiler error")
 end)
+task.wait(1)
 
 test("newcclosure", {}, function()
 	local function test()
@@ -277,6 +293,7 @@ test("crypt.hash", {}, function()
 end)
 
 --- Debug
+task.wait(1)
 
 test("debug.getconstant", {}, function()
 	local function test()
@@ -286,6 +303,7 @@ test("debug.getconstant", {}, function()
 	assert(debug.getconstant(test, 2) == nil, "Second constant must be nil")
 	assert(debug.getconstant(test, 3) == "Hello, world!", "Third constant must be 'Hello, world!'")
 end)
+task.wait(1)
 
 test("debug.getconstants", {}, function()
 	local function test()
@@ -299,6 +317,7 @@ test("debug.getconstants", {}, function()
 	assert(constants[4] == "Hello, world!", "Fourth constant must be 'Hello, world!'")
 	assert(constants[5] == "warn", "Fifth constant must be warn")
 end)
+task.wait(1)
 
 test("debug.getinfo", {}, function()
 	local types = {
@@ -321,6 +340,7 @@ test("debug.getinfo", {}, function()
 		assert(type(info[k]) == v, "Did not return a table with " .. k .. " as a " .. v .. " (got " .. type(info[k]) .. ")")
 	end
 end)
+task.wait(1)
 
 test("debug.getproto", {}, function()
 	local function test()
@@ -336,6 +356,7 @@ test("debug.getproto", {}, function()
 		return "Proto return values are disabled on this executor"
 	end
 end)
+task.wait(1)
 
 test("debug.getprotos", {}, function()
 	local function test()
@@ -358,12 +379,14 @@ test("debug.getprotos", {}, function()
 		end
 	end
 end)
+task.wait(1)
 
 test("debug.getstack", {}, function()
 	local _ = "a" .. "b"
 	assert(debug.getstack(1, 1) == "ab", "The first item in the stack should be 'ab'")
 	assert(debug.getstack(1)[1] == "ab", "The first item in the stack table should be 'ab'")
 end)
+task.wait(1)
 
 test("debug.getupvalue", {}, function()
 	local upvalue = function() end
@@ -372,6 +395,7 @@ test("debug.getupvalue", {}, function()
 	end
 	assert(debug.getupvalue(test, 1) == upvalue, "Unexpected value returned from debug.getupvalue")
 end)
+task.wait(1)
 
 test("debug.getupvalues", {}, function()
 	local upvalue = function() end
@@ -381,6 +405,7 @@ test("debug.getupvalues", {}, function()
 	local upvalues = debug.getupvalues(test)
 	assert(upvalues[1] == upvalue, "Unexpected value returned from debug.getupvalues")
 end)
+task.wait(1)
 
 test("debug.setconstant", {}, function()
 	local function test()
@@ -389,6 +414,7 @@ test("debug.setconstant", {}, function()
 	debug.setconstant(test, 1, "success")
 	assert(test() == "success", "debug.setconstant did not set the first constant")
 end)
+task.wait(1)
 
 test("debug.setstack", {}, function()
 	local function test()
@@ -396,6 +422,7 @@ test("debug.setstack", {}, function()
 	end
 	assert(test() == "success", "debug.setstack did not set the first stack item")
 end)
+task.wait(1)
 
 test("debug.setupvalue", {}, function()
 	local function upvalue()
@@ -409,6 +436,7 @@ test("debug.setupvalue", {}, function()
 	end)
 	assert(test() == "success", "debug.setupvalue did not set the first upvalue")
 end)
+task.wait(1)
 
 -- Filesystem
 
@@ -418,11 +446,13 @@ if isfolder and makefolder and delfolder then
 	end
 	makefolder(".tests")
 end
+task.wait(1)
 
 test("readfile", {}, function()
 	writefile(".tests/readfile.txt", "success")
 	assert(readfile(".tests/readfile.txt") == "success", "Did not return the contents of the file")
 end)
+task.wait(1)
 
 test("listfiles", {}, function()
 	makefolder(".tests/listfiles")
@@ -439,6 +469,7 @@ test("listfiles", {}, function()
 	assert(#folders == 2, "Did not return the correct number of folders")
 	assert(isfolder(folders[1]), "Did not return a folder path")
 end)
+task.wait(1)
 
 test("writefile", {}, function()
 	writefile(".tests/writefile.txt", "success")
@@ -451,11 +482,13 @@ test("writefile", {}, function()
 		return "This executor requires a file extension in writefile"
 	end
 end)
+task.wait(1)
 
 test("makefolder", {}, function()
 	makefolder(".tests/makefolder")
 	assert(isfolder(".tests/makefolder"), "Did not create the folder")
 end)
+task.wait(1)
 
 test("appendfile", {}, function()
 	writefile(".tests/appendfile.txt", "su")
@@ -463,6 +496,7 @@ test("appendfile", {}, function()
 	appendfile(".tests/appendfile.txt", "ss")
 	assert(readfile(".tests/appendfile.txt") == "success", "Did not append the file")
 end)
+task.wait(1)
 
 test("isfile", {}, function()
 	writefile(".tests/isfile.txt", "success")
@@ -470,23 +504,27 @@ test("isfile", {}, function()
 	assert(isfile(".tests") == false, "Did not return false for a folder")
 	assert(isfile(".tests/doesnotexist.exe") == false, "Did not return false for a nonexistent path (got " .. tostring(isfile(".tests/doesnotexist.exe")) .. ")")
 end)
+task.wait(1)
 
 test("isfolder", {}, function()
 	assert(isfolder(".tests") == true, "Did not return false for a folder")
 	assert(isfolder(".tests/doesnotexist.exe") == false, "Did not return false for a nonexistent path (got " .. tostring(isfolder(".tests/doesnotexist.exe")) .. ")")
 end)
+task.wait(1)
 
 test("delfolder", {}, function()
 	makefolder(".tests/delfolder")
 	delfolder(".tests/delfolder")
 	assert(isfolder(".tests/delfolder") == false, "Failed to delete folder (isfolder = " .. tostring(isfolder(".tests/delfolder")) .. ")")
 end)
+task.wait(1)
 
 test("delfile", {}, function()
 	writefile(".tests/delfile.txt", "Hello, world!")
 	delfile(".tests/delfile.txt")
 	assert(isfile(".tests/delfile.txt") == false, "Failed to delete file (isfile = " .. tostring(isfile(".tests/delfile.txt")) .. ")")
 end)
+task.wait(1)
 
 test("loadfile", {}, function()
 	writefile(".tests/loadfile.txt", "return ... + 1")
@@ -495,6 +533,7 @@ test("loadfile", {}, function()
 	local callback, err = loadfile(".tests/loadfile.txt")
 	assert(err and not callback, "Did not return an error message for a compiler error")
 end)
+task.wait(1)
 
 test("dofile", {})
 
@@ -523,11 +562,13 @@ test("mousemoverel", {})
 test("mousescroll", {})
 
 -- Instances
+task.wait(1)
 
 test("fireclickdetector", {}, function()
 	local detector = Instance.new("ClickDetector")
 	fireclickdetector(detector, 50, "MouseHoverEnter")
 end)
+task.wait(1)
 
 test("getcallbackvalue", {}, function()
 	local bindable = Instance.new("BindableFunction")
@@ -536,6 +577,7 @@ test("getcallbackvalue", {}, function()
 	bindable.OnInvoke = test
 	assert(getcallbackvalue(bindable, "OnInvoke") == test, "Did not return the correct value")
 end)
+task.wait(1)
 
 test("getconnections", {}, function()
 	local types = {
@@ -558,6 +600,7 @@ test("getconnections", {}, function()
 		assert(type(connection[k]) == v, "Did not return a table with " .. k .. " as a " .. v .. " (got " .. type(connection[k]) .. ")")
 	end
 end)
+task.wait(1)
 
 test("getcustomasset", {}, function()
 	writefile(".tests/getcustomasset.txt", "success")
@@ -566,6 +609,7 @@ test("getcustomasset", {}, function()
 	assert(#contentId > 0, "Returned an empty string")
 	assert(string.match(contentId, "rbxasset://") == "rbxasset://", "Did not return an rbxasset url")
 end)
+task.wait(1)
 
 test("gethiddenproperty", {}, function()
 	local fire = Instance.new("Fire")
@@ -573,6 +617,7 @@ test("gethiddenproperty", {}, function()
 	assert(property == 5, "Did not return the correct value")
 	assert(isHidden == true, "Did not return whether the property was hidden")
 end)
+task.wait(1)
 
 test("sethiddenproperty", {}, function()
 	local fire = Instance.new("Fire")
@@ -580,25 +625,30 @@ test("sethiddenproperty", {}, function()
 	assert(hidden, "Did not return true for the hidden property")
 	assert(gethiddenproperty(fire, "size_xml") == 10, "Did not set the hidden property")
 end)
+task.wait(1)
 
 test("gethui", {}, function()
 	assert(typeof(gethui()) == "Instance", "Did not return an Instance")
 end)
+task.wait(1)
 
 test("getinstances", {}, function()
 	assert(getinstances()[1]:IsA("Instance"), "The first value is not an Instance")
 end)
+task.wait(1)
 
 test("getnilinstances", {}, function()
 	assert(getnilinstances()[1]:IsA("Instance"), "The first value is not an Instance")
 	assert(getnilinstances()[1].Parent == nil, "The first value is not parented to nil")
 end)
+task.wait(1)
 
 test("isscriptable", {}, function()
 	local fire = Instance.new("Fire")
 	assert(isscriptable(fire, "size_xml") == false, "Did not return false for a non-scriptable property (size_xml)")
 	assert(isscriptable(fire, "Size") == true, "Did not return true for a scriptable property (Size)")
 end)
+task.wait(1)
 
 test("setscriptable", {}, function()
 	local fire = Instance.new("Fire")
@@ -612,12 +662,14 @@ end)
 test("setrbxclipboard", {})
 
 -- Metatable
+task.wait(1)
 
 test("getrawmetatable", {}, function()
 	local metatable = { __metatable = "Locked!" }
 	local object = setmetatable({}, metatable)
 	assert(getrawmetatable(object) == metatable, "Did not return the metatable")
 end)
+task.wait(1)
 
 test("hookmetamethod", {}, function()
 	local object = setmetatable({}, { __index = newcclosure(function() return false end), __metatable = "Locked!" })
@@ -625,6 +677,7 @@ test("hookmetamethod", {}, function()
 	assert(object.test == true, "Failed to hook a metamethod and change the return value")
 	assert(ref() == false, "Did not return the original function")
 end)
+task.wait(1)
 
 test("getnamecallmethod", {}, function()
 	local method
@@ -638,12 +691,14 @@ test("getnamecallmethod", {}, function()
 	game:GetService("Lighting")
 	assert(method == "GetService", "Did not get the correct method (GetService)")
 end)
+task.wait(1)
 
 test("isreadonly", {}, function()
 	local object = {}
 	table.freeze(object)
 	assert(isreadonly(object), "Did not return true for a read-only table")
 end)
+task.wait(1)
 
 test("setrawmetatable", {}, function()
 	local object = setmetatable({}, { __index = function() return false end, __metatable = "Locked!" })
@@ -654,6 +709,7 @@ test("setrawmetatable", {}, function()
 		return objectReturned == object and "Returned the original object" or "Did not return the original object"
 	end
 end)
+task.wait(1)
 
 test("setreadonly", {}, function()
 	local object = { success = false }
@@ -664,12 +720,14 @@ test("setreadonly", {}, function()
 end)
 
 -- Miscellaneous
+task.wait(1)
 
 test("identifyexecutor", {"getexecutorname"}, function()
 	local name, version = identifyexecutor()
 	assert(type(name) == "string", "Did not return a string for the name")
 	return type(version) == "string" and "Returns version as a string" or "Does not return version"
 end)
+task.wait(1)
 
 test("lz4compress", {}, function()
 	local raw = "Hello, world!"
@@ -677,6 +735,7 @@ test("lz4compress", {}, function()
 	assert(type(compressed) == "string", "Compression did not return a string")
 	assert(lz4decompress(compressed, #raw) == raw, "Decompression did not return the original string")
 end)
+task.wait(1)
 
 test("lz4decompress", {}, function()
 	local raw = "Hello, world!"
@@ -688,6 +747,7 @@ end)
 test("messagebox", {})
 
 test("queue_on_teleport", {"queueonteleport"})
+task.wait(1)
 
 test("request", {"http.request", "http_request"}, function()
 	local response = request({
@@ -702,6 +762,7 @@ test("request", {"http.request", "http_request"}, function()
 end)
 
 test("setclipboard", {"toclipboard"})
+task.wait(1)
 
 test("setfpscap", {}, function()
 	local renderStepped = game:GetService("RunService").RenderStepped
@@ -721,18 +782,21 @@ test("setfpscap", {}, function()
 end)
 
 -- Scripts
+task.wait(1)
 
 test("getgc", {}, function()
 	local gc = getgc()
 	assert(type(gc) == "table", "Did not return a table")
 	assert(#gc > 0, "Did not return a table with any values")
 end)
+task.wait(1)
 
 test("getgenv", {}, function()
 	getgenv().__TEST_GLOBAL = true
 	assert(__TEST_GLOBAL, "Failed to set a global variable")
 	getgenv().__TEST_GLOBAL = nil
 end)
+task.wait(1)
 
 test("getloadedmodules", {}, function()
 	local modules = getloadedmodules()
@@ -741,10 +805,12 @@ test("getloadedmodules", {}, function()
 	assert(typeof(modules[1]) == "Instance", "First value is not an Instance")
 	assert(modules[1]:IsA("ModuleScript"), "First value is not a ModuleScript")
 end)
+task.wait(1)
 
 test("getrenv", {}, function()
 	assert(_G ~= getrenv()._G, "The variable _G in the executor is identical to _G in the game")
 end)
+task.wait(1)
 
 test("getrunningscripts", {}, function()
 	local scripts = getrunningscripts()
@@ -753,12 +819,14 @@ test("getrunningscripts", {}, function()
 	assert(typeof(scripts[1]) == "Instance", "First value is not an Instance")
 	assert(scripts[1]:IsA("ModuleScript") or scripts[1]:IsA("LocalScript"), "First value is not a ModuleScript or LocalScript")
 end)
+task.wait(1)
 
 test("getscriptbytecode", {"dumpstring"}, function()
 	local animate = game:GetService("Players").LocalPlayer.Character.Animate
 	local bytecode = getscriptbytecode(animate)
 	assert(type(bytecode) == "string", "Did not return a string for Character.Animate (a " .. animate.ClassName .. ")")
 end)
+task.wait(1)
 
 test("getscripthash", {}, function()
 	local animate = game:GetService("Players").LocalPlayer.Character.Animate:Clone()
@@ -772,6 +840,7 @@ test("getscripthash", {}, function()
 	assert(hash ~= newHash, "Did not return a different hash for a modified script")
 	assert(newHash == getscripthash(animate), "Did not return the same hash for a script with the same source")
 end)
+task.wait(1)
 
 test("getscripts", {}, function()
 	local scripts = getscripts()
@@ -780,6 +849,7 @@ test("getscripts", {}, function()
 	assert(typeof(scripts[1]) == "Instance", "First value is not an Instance")
 	assert(scripts[1]:IsA("ModuleScript") or scripts[1]:IsA("LocalScript"), "First value is not a ModuleScript or LocalScript")
 end)
+task.wait(1)
 
 test("getsenv", {}, function()
 	local animate = game:GetService("Players").LocalPlayer.Character.Animate
@@ -787,15 +857,18 @@ test("getsenv", {}, function()
 	assert(type(env) == "table", "Did not return a table for Character.Animate (a " .. animate.ClassName .. ")")
 	assert(env.script == animate, "The script global is not identical to Character.Animate")
 end)
+task.wait(1)
 
 test("getthreadidentity", {"getidentity", "getthreadcontext"}, function()
 	assert(type(getthreadidentity()) == "number", "Did not return a number")
 end)
+task.wait(1)
 
 test("setthreadidentity", {"setidentity", "setthreadcontext"}, function()
 	setthreadidentity(3)
 	assert(getthreadidentity() == 3, "Did not set the thread identity")
 end)
+task.wait(1)
 
 -- Drawing
 
