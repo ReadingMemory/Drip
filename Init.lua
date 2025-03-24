@@ -465,7 +465,7 @@ Metatable.__namecall = function(Self, ...)
     end
 
     if Method == "HttpGet" or Method == "HttpGetAsync" then
-        return rqst({Url = Url, Method = "GET"}).Body --httpget(...)
+        return HttpGet(...)
     elseif Method == "GetObjects" then 
         return GetObjects(...)
     end
@@ -484,7 +484,7 @@ Metatable.__index = function(Self, i)
 
     if Self == game then
         if i == "HttpGet" or i == "HttpGetAsync" then 
-            return rqst({Url = Url, Method = "GET"}).Body --httpget
+            return HttpGet --httpget
         elseif i == "GetObjects" then 
             return GetObjects
         end
