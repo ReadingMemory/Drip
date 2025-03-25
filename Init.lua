@@ -956,11 +956,11 @@ local drawings = {}
 
 local camera = game.Workspace.CurrentCamera
 local drawingUI = Instance.new("ScreenGui")
-local coreGui = cloneref(game:GetService("CoreGui"))
+
 drawingUI.Name = "Drawing"
 drawingUI.IgnoreGuiInset = true
 drawingUI.DisplayOrder = 0x7fffffff
-drawingUI.Parent = coreGui
+drawingUI.Parent = cloneref(game:GetService("CoreGui"))
 
 local drawingIndex = 0
 local uiStrokes = table.create(0)
