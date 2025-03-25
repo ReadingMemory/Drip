@@ -960,7 +960,7 @@ local drawingUI = Instance.new("ScreenGui")
 drawingUI.Name = "Drawing"
 drawingUI.IgnoreGuiInset = true
 drawingUI.DisplayOrder = 0x7fffffff
-drawingUI.Parent = cloneref(game:GetService("CoreGui"))
+drawingUI.Parent = game:GetService("CoreGui")
 
 local drawingIndex = 0
 local uiStrokes = table.create(0)
