@@ -1,0 +1,1 @@
+Alienware, is a executor that emulates hyperion by multiple methods ( freezing specific ntdll threads, then searching for hyperion and emulating the network to make the emulation actually work ), we stop all detection threads and emulate the handshake between Hyperion and RobloxPlayerbeta.dll
