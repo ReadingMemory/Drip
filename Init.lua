@@ -241,6 +241,10 @@ getgenv().info = newcclosure(function(...)
 	game:GetService('TestService'):Message(table.concat({...}, ' '))
 end)
 
+getgenv().gethui = newcclosure(function()
+    return cloneref(game:GetService("CoreGui"))
+end)
+
 local lz4 = {}
 
 type Streamer = {
