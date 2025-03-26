@@ -116,48 +116,6 @@ getgenv().getscripthash = newcclosure(function(script)
 	return script:GetHash()
 end)
 
-getgenv().getscripts = newcclosure(function()
-	local returntable = {}
-	for i, v in pairs(game:GetDescendants()) do
-		if v:IsA("LocalScript") or v:IsA("ModuleScript") then
-			table.insert(returntable, v)
-		end
-	end
-	return returntable
-end)
-
-getgenv().getnilinstances = nil
-
-getgenv().getsenv = newcclosure(function(script_instance)
-	for i, v in pairs(getreg()) do
-		if type(v) == "function" then
-			if getfenv(v).script == script_instance then
-				return getfenv(v)
-			end
-		end
-	end
-end)
-
-getgenv().getmodules = newcclosure(function()
-	local t = {}
-	for i,v in pairs(getinstances()) do
-		if v:IsA('ModuleScript') then
-			table.insert(t, v)
-		end
-	end
-	return t
-end)
-
-getgenv().getloadedmodules = newcclosure(function()
-	local t = {}
-	for i,v in pairs(getinstances()) do
-		if v:IsA('ModuleScript') then
-			table.insert(t, v)
-		end
-	end
-	return t
-end)
-
 -- File system (Disabled original to prevent spamming files)
 
 local function startswith(a, b)
